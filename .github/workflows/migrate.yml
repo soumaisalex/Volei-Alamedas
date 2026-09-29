@@ -1,0 +1,24 @@
+name: Migrar banco (Neon)
+
+on:
+  push:
+    branches: [main]
+    paths: ['db/migrations/**', 'scripts/migrate.mjs']
+  workflow_dispatch:
+
+concurrency:
+  group: migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/migrate.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
