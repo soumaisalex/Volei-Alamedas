@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import Court from './Court.jsx';
+import Admin from './Admin.jsx';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 const STATUS = { finished: 'Encerrado', cancelled: 'Cancelado', in_progress: 'Em andamento', scheduled: 'Agendado', checkin_open: 'Check-in aberto' };
@@ -199,8 +201,22 @@ function Home({ user, onLogout }) {
 
 export default function App() {
   const [user, setUser] = useState(undefined);
+  const [tab, setTab] = useState('inicio');
   const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
   useEffect(() => { refresh(); }, [refresh]);
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
-  return user ? <Home user={user} onLogout={() => setUser(null)} /> : <Auth onDone={refresh} />;
+  if (!user) return <Auth onDone={refresh} />;
+  const tabs = [['inicio', 'Início'], ['quadra', 'Quadra'], ...(user.role === 'admin' ? [['admin', 'Operadores']] : [])];
+  return (
+    <>
+      {tab === 'inicio' && <Home user={user} onLogout={() => setUser(null)} />}
+      {tab === 'quadra' && <Court api={api} user={user} />}
+      {tab === 'admin' && <Admin api={api} />}
+      <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+        {tabs.map(([k, label]) => (
+          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
+        ))}
+      </nav>
+    </>
+  );
 }

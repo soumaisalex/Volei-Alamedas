@@ -2,7 +2,7 @@ import { handle, json, fail, readBody, createSession } from '../../_lib/util.js'
 
 export const onRequest = handle(async ({ request, env, sql }) => {
   if (request.method === 'GET') {
-    return json(await sql`select id, name, photo_url from players where active order by name`);
+    return json(await sql`select id, name, photo_url, role from players where active order by name`);
   }
   if (request.method !== 'POST') return fail(405, 'Método não permitido');
 

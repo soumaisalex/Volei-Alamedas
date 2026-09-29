@@ -1,4 +1,5 @@
 import { handle, json, fail, can, readBody, UUID } from '../../../_lib/util.js';
+import { dissolveTeams } from '../../../_lib/court.js';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 
@@ -30,6 +31,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     } else {
       await sql`update checkins set left_at = now(), left_marked_by = ${user.id}
                 where event_id = ${id} and player_id = ${pid} and left_at is null`;
+      await dissolveTeams(sql, id);
     }
     return json({ ok: true });
   }
