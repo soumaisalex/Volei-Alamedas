@@ -43,7 +43,7 @@ function Auth({ onDone }) {
 
   return (
     <main className="screen">
-      <h1 className="brand">Vôlei<br />Alamedas</h1>
+      <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
       <div className="tabs">
         <button className={mode === 'entrar' ? 'on' : ''} onClick={() => setMode('entrar')}>Já tenho cadastro</button>
         <button className={mode === 'cadastrar' ? 'on' : ''} onClick={() => setMode('cadastrar')}>Primeira vez</button>
@@ -117,7 +117,7 @@ function Home({ user, onLogout }) {
   return (
     <main className="screen">
       <header className="top">
-        <div><small className="muted">Olá,</small><h2>{user.name.split(' ')[0]}</h2></div>
+        <div className="row"><img className="logo mini" src="/logo.png" alt="Vôlei Alamedas Jardins" /><div><small className="muted">Olá,</small><h2>{user.name.split(' ')[0]}</h2></div></div>
         <button className="btn ghost small" onClick={logout}>Sair</button>
       </header>
       {err && <p className="err" role="alert">{err}</p>}
