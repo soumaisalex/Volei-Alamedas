@@ -4,7 +4,8 @@
   --teal: #0e7050;      /* verde-petróleo do laço e das pétalas */
   --forest: #2a6832;    /* verde do escudo */
   --deep: #14301c;      /* verde quase preto do miolo da flor */
-  --mist: #f1f7f2;      /* fundo */
+  --mist: #f1f7f2;      /* detalhes internos dos cards */
+  --page: #ffffff;      /* fundo da página */
   --paper: #ffffff;
   --line: #c9dccd;
   --tint: #d9f0de;
@@ -19,12 +20,12 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --mist: #0c1f13; --paper: #142d1c; --line: #27523a; --tint: #1c4a2a;
+    --page: #0c1f13; --mist: #0c1f13; --paper: #142d1c; --line: #27523a; --tint: #1c4a2a;
     --ink: #e8f5ea; --muted: #9cc3a6; --primary: var(--leaf); --on-primary: #06170c;
   }
 }
 *, *::before, *::after { box-sizing: inherit; }
-body { margin: 0; background: var(--mist); color: var(--ink); font: 400 1.05rem/1.45 var(--body); }
+body { margin: 0; background: var(--page); color: var(--ink); font: 400 1.05rem/1.45 var(--body); }
 .screen { max-width: 32rem; margin: 0 auto; padding: max(1rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom)); display: grid; gap: 1rem; }
 h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; line-height: 1.1; }
 h1 { font-size: 1.8rem; } h2 { font-size: 1.6rem; } h3 { font-size: 1.15rem; margin-bottom: .7rem; }
@@ -85,3 +86,19 @@ body { padding-bottom: 5.5rem; }
 .qhead .pill { margin: 0; }
 .arrows { display: flex; gap: .5rem; }
 .arrows .btn:not(.small) { width: 3.4rem; min-height: 3rem; padding: 0; }
+
+/* ───── Perfil e ranking ───── */
+.profile-head { display: grid; justify-items: center; gap: .7rem; text-align: center; }
+.profile-head .fill { width: 100%; text-align: left; }
+.avatar.xl { width: 6.5rem; height: 6.5rem; font-size: 2.8rem; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.tile { display: grid; gap: .1rem; text-align: center; padding: .9rem .5rem; }
+.tile strong { font: 400 2.2rem var(--display); color: var(--teal); }
+@media (prefers-color-scheme: dark) { .tile strong { color: var(--leaf); } }
+.emoji { font-size: 1.6rem; }
+.rank { font: 400 1.3rem var(--display); width: 2rem; text-align: center; color: var(--forest); }
+.score-line { white-space: nowrap; }
+.chip.on { background: var(--forest); color: #fff; border-color: var(--forest); }
+label.btn { display: grid; place-items: center; cursor: pointer; }
+label.btn:focus-within { outline: 3px solid var(--leaf); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

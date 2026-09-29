@@ -13,8 +13,8 @@ export default function Admin({ api }) {
   };
 
   return (
-    <main className="screen">
-      <h2>Operadores</h2>
+    <section>
+      <h3>Operadores</h3>
       <p className="muted">Operadores montam times, controlam a fila e o placar durante o evento.</p>
       {err && <p className="err" role="alert">{err}</p>}
       <div className="stack">
@@ -29,6 +29,6 @@ export default function Admin({ api }) {
           </div>
         ))}
       </div>
-    </main>
+    </section>
   );
 }
