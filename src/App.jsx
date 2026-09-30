@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
+import ThemeButton from './ThemeButton.jsx';
 import Profile from './Profile.jsx';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
@@ -46,6 +47,7 @@ function Auth({ onDone }) {
 
   return (
     <main className="screen">
+      <div className="theme-row"><ThemeButton /></div>
       <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
       <div className="tabs">
         <button className={mode === 'entrar' ? 'on' : ''} onClick={() => setMode('entrar')}>Já tenho cadastro</button>
@@ -121,7 +123,7 @@ function Home({ user, onLogout }) {
     <main className="screen">
       <header className="top">
         <div className="row"><img className="logo mini" src="/logo.png" alt="Vôlei Alamedas Jardins" /><div><small className="muted">Olá,</small><h2>{user.name.split(' ')[0]}</h2></div></div>
-        <button className="btn ghost small" onClick={logout}>Sair</button>
+        <div className="row"><ThemeButton /><button className="btn ghost small" onClick={logout}>Sair</button></div>
       </header>
       {err && <p className="err" role="alert">{err}</p>}
       {!events && <p className="muted">Carregando…</p>}
