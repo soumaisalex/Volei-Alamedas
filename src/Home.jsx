@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import ThemeButton from './ThemeButton.jsx';
 import { EventCards } from './Events.jsx';
+import Confirm from './Confirm.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 
 export default function Home({ api, user, onLogout, onOpenEvent }) {
@@ -13,6 +14,8 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [newEv, setNewEv] = useState({ date: '', title: '' });
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
+  const [ask, setAsk] = useState(null);
+  const askOk = (title, text, label, run, danger) => setAsk({ title, text, label, run, danger });
   const ops = user.role === 'admin' || user.role === 'operator';
   const cur = events ? pickCurrent(events) : null;
   const later = (events || []).filter((e) => OPEN.includes(e.status) && e !== cur).sort((a, b) => a.event_date.localeCompare(b.event_date));
@@ -64,13 +67,13 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
           {live ? (
             <>
               {cur.me_in
-                ? <button className="btn ghost" onClick={() => act('leave')}>Saí da quadra</button>
-                : <button className="btn primary" onClick={() => act('checkin')}>Estou aqui</button>}
+                ? <button className="btn ghost" onClick={() => askOk('Sair da quadra?', 'Você será marcado como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Sim, saí', () => act('leave'), true)}>Saí da quadra</button>
+                : <button className="btn primary" onClick={() => askOk('Fazer check-in?', 'Você será marcado como presente neste evento.', 'Fazer check-in', () => act('checkin'))}>Estou aqui</button>}
               <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
             </>
           ) : <p className="muted">O check-in abre quando um operador iniciar o evento.</p>}
           {ops && !live && <button className="btn" onClick={() => setPanel(panel === 'start' ? null : 'start')}>Iniciar evento e abrir check-in</button>}
-          {ops && live && <button className="btn" onClick={() => act('finish')}>Encerrar evento</button>}
+          {ops && live && <button className="btn" onClick={() => askOk('Encerrar o evento?', 'O evento termina e as votações das enquetes abrem por 24 horas. Não será possível continuar as partidas.', 'Encerrar evento', () => act('finish'), true)}>Encerrar evento</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
         </section>
       )}
@@ -78,7 +81,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
       {panel === 'others' && (
         <div className="stack">
           {players.filter((p) => !presentIds.has(p.id)).map((p) => (
-            <button key={p.id} className="card row" onClick={() => act('checkin', { player_id: p.id })}><Face p={p} /><span className="grow">{p.name}</span></button>
+            <button key={p.id} className="card row" onClick={() => askOk(`Fazer check-in de ${p.name}?`, 'Use só para quem está na quadra e está sem o celular.', 'Fazer check-in', () => act('checkin', { player_id: p.id }))}><Face p={p} /><span className="grow">{p.name}</span></button>
           ))}
         </div>
       )}
@@ -90,7 +93,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
             <strong>{size}</strong>
             <button className="btn" aria-label="Mais um" onClick={() => setSize(Math.min(6, size + 1))}>+</button>
           </div>
-          <button className="btn primary" onClick={() => act('start', { team_size: size })}>Começar</button>
+          <button className="btn primary" onClick={() => askOk('Iniciar o evento?', `Os times serão de ${size} jogadores e o check-in será aberto para todos.`, 'Iniciar evento', () => act('start', { team_size: size }))}>Começar</button>
         </div>
       )}
       {panel === 'cancel' && (
@@ -109,7 +112,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
           <div className="stack">
             {present.map((p) => (
               <div key={p.id} className="card row"><Face p={p} /><span className="grow">{p.name}</span>
-                <button className="btn ghost small" onClick={() => act('leave', { player_id: p.id })}>Saiu</button></div>
+                <button className="btn ghost small" onClick={() => askOk(`Marcar a saída de ${p.name}?`, 'A pessoa será marcada como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Marcar saída', () => act('leave', { player_id: p.id }), true)}>Saiu</button></div>
             ))}
           </div>
         </section>
@@ -129,6 +132,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
       )}
 
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
+      {ask && <Confirm {...ask} onCancel={() => setAsk(null)} onOk={async () => { const run = ask.run; setAsk(null); await run(); }} />}
     </main>
   );
 }
