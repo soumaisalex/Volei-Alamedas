@@ -18,11 +18,25 @@ function Zone({ id, className, children }) {
   return <div ref={setNodeRef} className={`${className}${isOver ? ' over' : ''}`}>{children}</div>;
 }
 
-function Team({ t, size, ops, children }) {
+function Team({ t, size, ops, canRename, onRename, children }) {
+  const [name, setName] = useState(null);
   const filled = t.members.filter((m) => !m.left).length;
   return (
     <Zone id={t.id} className="team">
-      <div className="qhead"><strong className="grow">{t.name}</strong><span className="pill">{filled}/{size}</span></div>
+      <div className="qhead">
+        {name === null ? (
+          <>
+            <strong className="grow">{t.name}</strong>
+            {canRename && <button className="chip" aria-label={`Renomear ${t.name}`} onClick={() => setName(t.name)}>Nomear</button>}
+          </>
+        ) : (
+          <>
+            <input className="grow" value={name} maxLength={30} autoFocus aria-label="Nome do time" onChange={(e) => setName(e.target.value)} />
+            <button className="chip" disabled={!name.trim()} onClick={() => { onRename(t.id, name); setName(null); }}>Salvar</button>
+          </>
+        )}
+        <span className="pill">{filled}/{size}</span>
+      </div>
       <div className="members">
         {t.members.map((m) => <Player key={m.id} p={m} disabled={!ops} />)}
         {!t.members.length && <p className="muted">Time vazio. Solte jogadores aqui.</p>}
@@ -80,6 +94,7 @@ export default function Court({ api, user }) {
     busy.current = false;
     await load().catch(() => {});
   };
+  const rename = (team_id, name) => run('team-rename', { team_id, name });
 
   if (idle) return <main className="screen"><h2>Quadra</h2><p className="muted">{idle}</p></main>;
   if (!data) return <main className="screen"><p className="muted">Carregando…</p>{err && <p className="err">{err}</p>}</main>;
@@ -115,7 +130,7 @@ export default function Court({ api, user }) {
               {sides.map((t, i) => {
                 const key = i ? 'b' : 'a';
                 return (
-                  <Team key={t.id} t={t} size={size} ops={false}>
+                  <Team key={t.id} t={t} size={size} ops={false} canRename={ops} onRename={rename}>
                     <div className="score">
                       {ops ? <button className="btn" aria-label="Menos um ponto" onClick={() => run('match-score', { side: key, delta: -1 })}>−</button> : <span />}
                       <strong>{match[`score_${key}`]}</strong>
@@ -153,7 +168,7 @@ export default function Court({ api, user }) {
           <h3>Fila (linha-fora)</h3>
           <div className="stack">
             {queue.map((t, i) => (
-              <Team key={t.id} t={t} size={size} ops={ops}>
+              <Team key={t.id} t={t} size={size} ops={ops} canRename={ops} onRename={rename}>
                 <div className="qhead">
                   <span className="pill">{i + 1}º na fila</span>
                   <small className="muted grow">{!match && i < 2 ? 'joga a seguir' : ''}</small>

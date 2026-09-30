@@ -44,9 +44,9 @@ h1 { font-size: 1.8rem; } h2 { font-size: 1.6rem; } h3 { font-size: 1.15rem; mar
 .row { display: flex; align-items: center; gap: .8rem; }
 .grow { flex: 1; }
 
-/* A logo tem fundo branco: vira um selo, também no modo escuro */
-.logo { display: block; width: min(68vw, 15rem); height: auto; margin: .5rem auto 0; background: #fff; border-radius: 1.5rem; padding: .6rem; }
-.logo.mini { width: 3.6rem; margin: 0; padding: .2rem; border-radius: .9rem; flex: none; }
+/* Logo com fundo transparente */
+.logo { display: block; width: min(62vw, 14rem); height: auto; margin: .5rem auto 0; }
+.logo.mini { width: 3rem; margin: 0; flex: none; }
 
 .card { background: var(--paper); border: 2px solid var(--line); border-radius: 1rem; padding: 1rem; font: inherit; color: inherit; text-align: left; width: 100%; }
 button.card { min-height: 4.2rem; font-weight: 800; cursor: pointer; }
@@ -135,3 +135,21 @@ details > .stack, details > p { margin-bottom: .8rem; }
 .card.code { border-color: var(--leaf); text-align: center; display: grid; gap: .4rem; margin-bottom: .6rem; }
 .card.code p { margin: 0; }
 .code-text { font: 400 2.2rem var(--display); letter-spacing: .12em; color: var(--num); }
+
+/* ───── Textos longos nunca estouram o card ───── */
+.screen, .stack, .members, .team, .versus, .hero, .free, .profile-head { grid-template-columns: minmax(0, 1fr); }
+.tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.score { grid-template-columns: 4.2rem minmax(0, 1fr) 4.2rem; }
+.stepper { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.grow, .player > span, .row > span:not(.avatar):not(.emoji):not(.pill):not(.rank) { min-width: 0; overflow-wrap: anywhere; }
+.player { min-width: 0; }
+.player > span { flex: 1; line-height: 1.2; }
+.player > small { flex: none; }
+.row, .qhead, details > summary { min-width: 0; }
+.qhead > strong { min-width: 0; overflow-wrap: anywhere; }
+.qhead input { min-height: 2.8rem; }
+.pill { max-width: 100%; overflow-wrap: anywhere; }
+.card, .team, .sheet { max-width: 100%; }
+button.card { overflow-wrap: anywhere; }
+.nav button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -25,6 +25,13 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     return json({ ok: true });
   }
 
+  if (action === 'team-rename') {
+    const name = String(b.name || '').trim().slice(0, 30);
+    if (!UUID.test(b.team_id || '') || !name) return fail(400, 'Informe o nome do time.');
+    await sql`update teams set name = ${name} where id = ${b.team_id} and event_id = ${id} and status <> 'disbanded'`;
+    return json({ ok: true });
+  }
+
   if (action === 'team-remove') {
     if (!UUID.test(b.team_id || '')) return fail(400, 'Time inválido.');
     const done = await sql`update teams set status = 'disbanded', disbanded_at = now(), queue_pos = null
