@@ -44,7 +44,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
 
   // Check-in e saída: o próprio jogador ou qualquer pessoa por ele.
   if (action === 'checkin' || action === 'leave') {
-    if (!OPEN.includes(ev.status)) return fail(409, 'Este evento não está aberto.');
+    if (ev.status !== 'in_progress') return fail(409, 'O check-in abre quando o evento é iniciado por um operador.');
     const pid = body.player_id || user.id;
     if (!UUID.test(pid)) return fail(400, 'Jogador inválido.');
     if (action === 'checkin') {

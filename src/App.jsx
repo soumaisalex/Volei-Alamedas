@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
+import LoginPick from './Login.jsx';
+import { SetupForm } from './Setup.jsx';
 import ShareCard from './ShareCard.jsx';
 import { eventCard } from './cards.js';
 import Enquetes from './Enquetes.jsx';
@@ -70,14 +72,7 @@ function Auth({ onDone }) {
         </>
       )}
       {mode === 'entrar' && pick && (
-        <div className="stack">
-          <div className="card row"><Avatar p={pick} />{pick.name}</div>
-          <input inputMode="numeric" maxLength={4} placeholder="4 últimos dígitos do celular" value={last4}
-                 onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))} />
-          <button className="btn primary" disabled={last4.length !== 4}
-                  onClick={() => run(() => api('/auth/login', { body: { player_id: pick.id, last4 } }))}>Entrar</button>
-          <button className="btn ghost" onClick={() => { setPick(null); setLast4(''); }}>Não sou eu</button>
-        </div>
+        <LoginPick api={api} pick={pick} onDone={onDone} onBack={() => { setPick(null); setLast4(''); }} />
       )}
       {mode === 'cadastrar' && (
         <div className="stack">
@@ -141,12 +136,16 @@ function Home({ user, onLogout }) {
         <section className="card hero">
           <p className="pill">{STATUS[cur.status]}</p>
           <h1>{fmtDate(cur.event_date)}</h1>
-          <p className="big">{cur.present} {cur.present === 1 ? 'pessoa aqui' : 'pessoas aqui'}{cur.team_size ? ` · times de ${cur.team_size}` : ''}</p>
-          {cur.me_in
-            ? <button className="btn ghost" onClick={() => act('leave')}>Saí da quadra</button>
-            : <button className="btn primary" onClick={() => act('checkin')}>Estou aqui</button>}
-          <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
-          {ops && cur.status !== 'in_progress' && <button className="btn" onClick={() => setPanel(panel === 'start' ? null : 'start')}>Iniciar evento</button>}
+          {cur.status === 'in_progress' && <p className="big">{cur.present} {cur.present === 1 ? 'pessoa aqui' : 'pessoas aqui'}{cur.team_size ? ` · times de ${cur.team_size}` : ''}</p>}
+          {cur.status === 'in_progress' ? (
+            <>
+              {cur.me_in
+                ? <button className="btn ghost" onClick={() => act('leave')}>Saí da quadra</button>
+                : <button className="btn primary" onClick={() => act('checkin')}>Estou aqui</button>}
+              <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
+            </>
+          ) : <p className="muted">O check-in abre quando um operador iniciar o evento.</p>}
+          {ops && cur.status !== 'in_progress' && <button className="btn" onClick={() => setPanel(panel === 'start' ? null : 'start')}>Iniciar evento e abrir check-in</button>}
           {ops && cur.status === 'in_progress' && <button className="btn" onClick={() => act('finish')}>Encerrar evento</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
         </section>
@@ -181,7 +180,7 @@ function Home({ user, onLogout }) {
         </div>
       )}
 
-      {cur && (
+      {cur && cur.status === 'in_progress' && (
         <section>
           <h3>Na quadra agora</h3>
           {!present.length && <p className="muted">Ninguém fez check-in ainda. Toque em “Estou aqui”.</p>}
@@ -221,6 +220,17 @@ export default function App() {
   useEffect(() => { refresh(); }, [refresh]);
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
   if (!user) return <Auth onDone={refresh} />;
+  if (user.needs_password) {
+    return (
+      <main className="screen">
+        <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
+        <h2>Crie sua senha</h2>
+        <p className="muted">Contas de admin e operador agora entram com senha própria. Até criar a sua, os recursos de gestão ficam bloqueados.</p>
+        <SetupForm api={api} playerId={user.id} onDone={refresh} />
+        <button className="btn ghost" onClick={() => api('/auth/logout', { body: {} }).then(() => setUser(null))}>Sair</button>
+      </main>
+    );
+  }
   const tabs = [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['enquetes', 'Enquetes'], ['perfil', 'Perfil']];
   return (
     <>
