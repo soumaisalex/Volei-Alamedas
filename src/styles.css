@@ -33,7 +33,7 @@
   color-scheme: dark;
   }
 }
-*, *::before, *::after { box-sizing: inherit; }
+*, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--ink); font: 400 1.05rem/1.45 var(--body); }
 .screen { max-width: 32rem; margin: 0 auto; padding: max(1rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom)); display: grid; gap: 1rem; }
 h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; line-height: 1.1; }
@@ -153,3 +153,8 @@ details > .stack, details > p { margin-bottom: .8rem; }
 .card, .team, .sheet { max-width: 100%; }
 button.card { overflow-wrap: anywhere; }
 .nav button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Dentro de <details> o navegador cria uma caixa interna (::details-content) em content-box;
+   com box-sizing herdado, os cards aninhados ficavam 100% + padding + borda (estouravam ~36 px). */
+details::details-content { box-sizing: border-box; }
+details > p.muted { margin-bottom: .6rem; }

@@ -10,7 +10,7 @@ function left(iso) {
   if (h >= 24) return `${Math.floor(h / 24)} d ${h % 24} h`;
   return h ? `${h} h` : `${Math.max(1, Math.floor(ms / 6e4))} min`;
 }
-const day = (d) => d && new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+const day = (d) => d && new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
 
 export default function Enquetes({ api, user }) {
   const [polls, setPolls] = useState(null);
