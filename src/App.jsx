@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
+import Enquetes from './Enquetes.jsx';
 import ThemeButton from './ThemeButton.jsx';
 import Profile from './Profile.jsx';
 
@@ -210,12 +211,13 @@ export default function App() {
   useEffect(() => { refresh(); }, [refresh]);
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
   if (!user) return <Auth onDone={refresh} />;
-  const tabs = [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['perfil', 'Perfil']];
+  const tabs = [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['enquetes', 'Enquetes'], ['perfil', 'Perfil']];
   return (
     <>
       {tab === 'inicio' && <Home user={user} onLogout={() => setUser(null)} />}
       {tab === 'quadra' && <Court api={api} user={user} />}
       {tab === 'ranking' && <Ranking api={api} onOpen={(id) => { setViewId(id); setTab('perfil'); }} />}
+      {tab === 'enquetes' && <Enquetes api={api} user={user} />}
       {tab === 'perfil' && <Profile api={api} user={user} playerId={viewId} onBack={() => { setViewId(null); setTab('ranking'); }} onSaved={refresh} />}
       <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
         {tabs.map(([k, label]) => (

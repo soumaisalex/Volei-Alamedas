@@ -1,5 +1,6 @@
 import { handle, json, fail, can, readBody, UUID } from '../../../_lib/util.js';
 import { dissolveTeams } from '../../../_lib/court.js';
+import { openPollsForEvent } from '../../../_lib/polls.js';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 
@@ -49,7 +50,9 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores encerram o evento.');
     const done = await sql`update events set status = 'finished', finished_at = now()
                            where id = ${id} and status = 'in_progress' returning id`;
-    return done.length ? json({ ok: true }) : fail(409, 'O evento não está em andamento.');
+    if (!done.length) return fail(409, 'O evento não está em andamento.');
+    await openPollsForEvent(sql, id, 24);
+    return json({ ok: true });
   }
 
   if (action === 'cancel') {

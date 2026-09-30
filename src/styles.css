@@ -60,9 +60,9 @@ button.card { min-height: 4.2rem; font-weight: 800; cursor: pointer; }
 .btn.ghost { border-color: var(--line); }
 .btn.small { min-height: 2.8rem; width: auto; font-size: .95rem; padding: 0 .9rem; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn:focus-visible, .card:focus-visible, input:focus-visible, .chip:focus-visible, .tabs button:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; }
+.btn:focus-visible, .card:focus-visible, input:focus-visible, textarea:focus-visible, .chip:focus-visible, .tabs button:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; }
 
-input { min-height: 3.6rem; border-radius: 1rem; border: 2px solid var(--line); padding: 0 1rem; font: inherit; background: var(--paper); color: var(--ink); width: 100%; }
+input, textarea { min-height: 3.6rem; border-radius: 1rem; border: 2px solid var(--line); padding: 0 1rem; font: inherit; background: var(--paper); color: var(--ink); width: 100%; }
 .avatar { width: 2.8rem; height: 2.8rem; border-radius: 50%; background: var(--teal); color: #fff; display: grid; place-items: center; font: 400 1.2rem var(--display); object-fit: cover; flex: none; }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
@@ -78,7 +78,7 @@ input { min-height: 3.6rem; border-radius: 1rem; border: 2px solid var(--line); 
 /* ───── Navegação e quadra ───── */
 body { padding-bottom: 5.5rem; }
 .nav { position: fixed; inset: auto 0 0 0; display: grid; gap: .5rem; padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom)); background: var(--paper); border-top: 2px solid var(--line); }
-.nav button { min-height: 3.4rem; border-radius: 1rem; border: 2px solid transparent; background: transparent; color: var(--muted); font: 800 1.05rem var(--body); cursor: pointer; }
+.nav button { min-height: 3.4rem; border-radius: 1rem; border: 2px solid transparent; background: transparent; color: var(--muted); font: 800 .88rem var(--body); padding: 0 .2rem; cursor: pointer; }
 .nav .on { background: var(--tint); color: var(--ink); border-color: var(--leaf); }
 .team { background: var(--paper); border: 2px solid var(--line); border-radius: 1rem; padding: .8rem; display: grid; gap: .6rem; }
 .team.over, .free.over { border-color: var(--leaf); background: var(--tint); }
@@ -112,3 +112,16 @@ label.btn:focus-within { outline: 3px solid var(--leaf); outline-offset: 2px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .theme-row { display: flex; justify-content: flex-end; }
+
+/* ───── Enquetes ───── */
+textarea { padding: .7rem 1rem; min-height: 6rem; resize: vertical; line-height: 1.4; }
+details.card { padding: .3rem 1rem; }
+details > summary { display: flex; align-items: center; gap: .6rem; min-height: 3.4rem; cursor: pointer; font-weight: 800; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary { margin-bottom: .4rem; }
+details > .stack, details > p { margin-bottom: .8rem; }
+.pill.warn { background: var(--sun-soft, #fff1c2); color: #4a3a00; border-color: #e0b700; }
+.opt.picked { border-color: var(--leaf); background: var(--tint); }
+.res { min-height: 3rem; }
+.res.win { font-weight: 800; }
+.admin-polls h3 { margin-top: 1rem; }
