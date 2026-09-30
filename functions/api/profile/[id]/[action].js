@@ -30,8 +30,12 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     let best = 0, run = 0;
     for (const r of results) { run = r.won ? run + 1 : 0; best = Math.max(best, run); }
     const trophies = await sql`
-      select c.id, c.name, c.emoji, count(*)::int as n
-      from awards a join poll_categories c on c.id = a.category_id
+      select c.id, c.name, c.emoji, c.description, count(*)::int as n,
+             to_char(max(e.event_date), 'YYYY-MM-DD') as last_date,
+             (array_agg(a.votes_count order by e.event_date desc nulls last))[1] as last_votes
+      from awards a
+      join poll_categories c on c.id = a.category_id
+      left join events e on e.id = a.event_id
       where a.player_id = ${id} group by c.id order by min(c.sort_order)`;
     return json({
       player,

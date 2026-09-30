@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
+import ShareCard from './ShareCard.jsx';
+import { eventCard } from './cards.js';
 import Enquetes from './Enquetes.jsx';
 import ThemeButton from './ThemeButton.jsx';
 import Profile from './Profile.jsx';
@@ -98,6 +100,7 @@ function Home({ user, onLogout }) {
   const [size, setSize] = useState(4);
   const [reason, setReason] = useState('');
   const [err, setErr] = useState('');
+  const [card, setCard] = useState(null);
   const ops = user.role === 'admin' || user.role === 'operator';
   const cur = events?.find((e) => OPEN.includes(e.status));
 
@@ -115,6 +118,11 @@ function Home({ user, onLogout }) {
     catch (e) { setErr(e.message); }
   };
   const logout = async () => { await api('/auth/logout', { method: 'POST', body: {} }); onLogout(); };
+  const shareEvent = async (e) => {
+    setErr('');
+    try { const s = await api(`/events/${e.id}/summary`); setCard({ name: 'resumo do evento', make: () => eventCard(s) }); }
+    catch (x) { setErr(x.message); }
+  };
 
   const present = here.filter((p) => !p.left_at);
   const presentIds = new Set(present.map((p) => p.id));
@@ -194,11 +202,13 @@ function Home({ user, onLogout }) {
               <div key={e.id} className="card">
                 <strong>{fmtDate(e.event_date)}</strong>
                 <p className="muted">{STATUS[e.status]}{e.status === 'cancelled' ? ` — ${e.cancel_reason}` : ` · ${e.present} presentes`}</p>
+                {e.status === 'finished' && <button className="btn small" onClick={() => shareEvent(e)}>Compartilhar resumo</button>}
               </div>
             ))}
           </div>
         </section>
       )}
+      {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );
 }

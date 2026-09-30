@@ -125,3 +125,8 @@ details > .stack, details > p { margin-bottom: .8rem; }
 .res { min-height: 3rem; }
 .res.win { font-weight: 800; }
 .admin-polls h3 { margin-top: 1rem; }
+
+/* ───── Cards compartilháveis ───── */
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .65); display: grid; place-items: center; padding: 1rem; overflow: auto; }
+.sheet { background: var(--paper); border-radius: 1.2rem; padding: 1rem; width: min(100%, 26rem); display: grid; gap: .7rem; }
+.card-img { width: 100%; max-height: 58vh; object-fit: contain; border-radius: .8rem; background: var(--mist); }

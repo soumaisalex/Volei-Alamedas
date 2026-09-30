@@ -17,6 +17,28 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       from checkins c join players p on p.id = c.player_id
       where c.event_id = ${id} order by c.checked_in_at`);
   }
+  if (request.method === 'GET' && action === 'summary') {
+    const [info] = await sql`
+      select to_char(event_date, 'YYYY-MM-DD') as event_date,
+             (select count(*)::int from checkins where event_id = ${id}) as players
+      from events where id = ${id}`;
+    const matches = await sql`
+      select ta.name as a, tb.name as b, m.score_a, m.score_b, (m.winner_team_id = m.team_a_id) as a_won
+      from matches m join teams ta on ta.id = m.team_a_id join teams tb on tb.id = m.team_b_id
+      where m.event_id = ${id} and m.status = 'finished' order by m.seq`;
+    const [champion] = await sql`
+      select t.name, count(*)::int as wins,
+             (select coalesce(json_agg(distinct p.name), '[]'::json) from match_players mp
+                join players p on p.id = mp.player_id where mp.team_id = t.id) as players
+      from matches m join teams t on t.id = m.winner_team_id
+      where m.event_id = ${id} and m.status = 'finished'
+      group by t.id order by wins desc limit 1`;
+    const awards = await sql`
+      select c.emoji, c.name as category, json_agg(distinct p.name) as winners
+      from awards a join poll_categories c on c.id = a.category_id join players p on p.id = a.player_id
+      where a.event_id = ${id} group by c.id order by min(c.sort_order)`;
+    return json({ ...info, matches, champion: champion ?? null, awards });
+  }
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
   const body = await readBody(request);
 

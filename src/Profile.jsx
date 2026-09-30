@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Admin from './Admin.jsx';
+import ShareCard from './ShareCard.jsx';
+import { playerCard, trophyCard } from './cards.js';
 
 // Recorta ao centro e reduz para um JPEG quadrado leve (~30 KB).
 async function toJpeg(file, size = 320) {
@@ -20,6 +22,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [card, setCard] = useState(null);
 
   const load = useCallback(
     () => api(`/profile/${id}/stats`).then((r) => { setD(r); setName(r.player.name); }).catch((e) => setErr(e.message)),
@@ -60,6 +63,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
         {p.photo_url ? <img className="avatar xl" src={p.photo_url} alt="" /> : <span className="avatar xl">{p.name[0]}</span>}
         <h2>{p.name}</h2>
         {p.role !== 'player' && <span className="pill">{p.role === 'admin' ? 'Admin' : 'Operador'}</span>}
+        <button className="btn primary" onClick={() => setCard({ name: p.name, make: () => playerCard(d) })}>Compartilhar card</button>
         {canEdit && (
           <div className="stack fill">
             <label className="btn">
@@ -88,13 +92,14 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
         {trophies.length ? (
           <div className="stack">
             {trophies.map((t) => (
-              <div key={t.id} className="card row"><span className="emoji">{t.emoji}</span><span className="grow">{t.name}</span><strong>x{t.n}</strong></div>
+              <div key={t.id} className="card row"><span className="emoji">{t.emoji}</span><span className="grow">{t.name}</span><button className="chip" onClick={() => setCard({ name: t.name, make: () => trophyCard(p, t) })}>Compartilhar</button><strong>x{t.n}</strong></div>
             ))}
           </div>
         ) : <p className="muted">Os troféus das enquetes aparecem aqui.</p>}
       </section>
 
       {mine && user.role === 'admin' && <Admin api={api} />}
+      {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );
 }
