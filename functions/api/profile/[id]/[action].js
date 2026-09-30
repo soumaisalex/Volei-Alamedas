@@ -14,10 +14,11 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     });
   }
 
-  if (!user) return fail(401, 'Entre para continuar.');
-  const own = user.id === id || can(user, 'admin');
+  const isStats = action === 'stats' && request.method === 'GET'; // perfil público
+  if (!user && !isStats) return fail(401, 'Entre para continuar.');
+  const own = !!user && (user.id === id || can(user, 'admin'));
 
-  if (action === 'stats' && request.method === 'GET') {
+  if (isStats) {
     const [player] = await sql`select id, name, photo_url, role from players where id = ${id} and active`;
     if (!player) return fail(404, 'Jogador não encontrado.');
     const [s] = await sql`

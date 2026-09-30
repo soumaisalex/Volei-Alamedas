@@ -71,8 +71,9 @@ export default function Court({ api, user }) {
   const load = useCallback(async () => {
     if (busy.current) return;
     const list = await api('/events');
-    const cur = list.find((e) => OPEN.includes(e.status));
-    if (!cur || cur.status !== 'in_progress') {
+    const live = list.find((e) => e.status === 'in_progress');
+    const cur = live ?? list.find((e) => OPEN.includes(e.status));
+    if (!live) {
       setData(null);
       setIdle(cur ? 'Inicie o evento na tela Início para montar os times.' : 'Não há evento aberto.');
       return;

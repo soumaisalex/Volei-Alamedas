@@ -5,7 +5,8 @@ import { openPollsForEvent } from '../../../_lib/polls.js';
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 
 export const onRequest = handle(async ({ request, params, sql, user }) => {
-  if (!user) return fail(401, 'Entre para continuar.');
+  // O resumo do evento é público; todo o resto exige login.
+  if (!user && !(request.method === 'GET' && params.action === 'summary')) return fail(401, 'Entre para continuar.');
   const { id, action } = params;
   if (!UUID.test(id)) return fail(400, 'Evento inválido.');
   const [ev] = await sql`select id, status from events where id = ${id}`;
@@ -19,7 +20,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   }
   if (request.method === 'GET' && action === 'summary') {
     const [info] = await sql`
-      select to_char(event_date, 'YYYY-MM-DD') as event_date,
+      select to_char(event_date, 'YYYY-MM-DD') as event_date, status, title, cancel_reason,
              (select count(*)::int from checkins where event_id = ${id}) as players
       from events where id = ${id}`;
     const matches = await sql`
@@ -64,8 +65,9 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const size = Number(body.team_size);
     if (!Number.isInteger(size) || size < 2 || size > 6) return fail(400, 'Informe de 2 a 6 jogadores por time.');
     const done = await sql`update events set status = 'in_progress', team_size = ${size}, started_at = now()
-                           where id = ${id} and status in ('scheduled', 'checkin_open') returning id`;
-    return done.length ? json({ ok: true }) : fail(409, 'O evento não pode ser iniciado agora.');
+                           where id = ${id} and status in ('scheduled', 'checkin_open')
+                             and not exists (select 1 from events where status = 'in_progress') returning id`;
+    return done.length ? json({ ok: true }) : fail(409, 'Já existe um evento em andamento, ou este não pode ser iniciado agora.');
   }
 
   if (action === 'finish') {

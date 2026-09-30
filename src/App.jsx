@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
+import Home from './Home.jsx';
+import EventDetail from './EventDetail.jsx';
+import { PublicHome } from './Events.jsx';
 import LoginPick from './Login.jsx';
 import { SetupForm } from './Setup.jsx';
-import ShareCard from './ShareCard.jsx';
-import { eventCard } from './cards.js';
 import Enquetes from './Enquetes.jsx';
 import ThemeButton from './ThemeButton.jsx';
 import Profile from './Profile.jsx';
@@ -36,7 +37,7 @@ function Avatar({ p }) {
   return p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.name[0]}</span>;
 }
 
-function Auth({ onDone }) {
+function Auth({ onDone, onBack }) {
   const [mode, setMode] = useState('entrar');
   const [players, setPlayers] = useState([]);
   const [q, setQ] = useState('');
@@ -52,7 +53,7 @@ function Auth({ onDone }) {
 
   return (
     <main className="screen">
-      <div className="theme-row"><ThemeButton /></div>
+      <div className="theme-row">{onBack && <button className="btn ghost small" onClick={onBack}>Voltar</button>}<ThemeButton /></div>
       <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
       <div className="tabs">
         <button className={mode === 'entrar' ? 'on' : ''} onClick={() => setMode('entrar')}>Já tenho cadastro</button>
@@ -87,140 +88,18 @@ function Auth({ onDone }) {
   );
 }
 
-function Home({ user, onLogout }) {
-  const [events, setEvents] = useState(null);
-  const [here, setHere] = useState([]);
-  const [players, setPlayers] = useState([]);
-  const [panel, setPanel] = useState(null);
-  const [size, setSize] = useState(4);
-  const [reason, setReason] = useState('');
-  const [err, setErr] = useState('');
-  const [card, setCard] = useState(null);
-  const ops = user.role === 'admin' || user.role === 'operator';
-  const cur = events?.find((e) => OPEN.includes(e.status));
-
-  const load = useCallback(async () => {
-    const list = await api('/events');
-    setEvents(list);
-    const c = list.find((e) => OPEN.includes(e.status));
-    setHere(c ? await api(`/events/${c.id}/checkins`) : []);
-  }, []);
-  useEffect(() => { load().catch((e) => setErr(e.message)); api('/players').then(setPlayers).catch(() => {}); }, [load]);
-
-  const act = async (action, body) => {
-    setErr('');
-    try { await api(`/events/${cur.id}/${action}`, { body: body || {} }); setPanel(null); await load(); }
-    catch (e) { setErr(e.message); }
-  };
-  const logout = async () => { await api('/auth/logout', { method: 'POST', body: {} }); onLogout(); };
-  const shareEvent = async (e) => {
-    setErr('');
-    try { const s = await api(`/events/${e.id}/summary`); setCard({ name: 'resumo do evento', make: () => eventCard(s) }); }
-    catch (x) { setErr(x.message); }
-  };
-
-  const present = here.filter((p) => !p.left_at);
-  const presentIds = new Set(present.map((p) => p.id));
-  const past = (events || []).filter((e) => !OPEN.includes(e.status));
-
-  return (
-    <main className="screen">
-      <header className="top">
-        <div className="row"><img className="logo mini" src="/logo.png" alt="Vôlei Alamedas Jardins" /><div><small className="muted">Olá,</small><h2>{user.name.split(' ')[0]}</h2></div></div>
-        <div className="row"><ThemeButton /><button className="btn ghost small" onClick={logout}>Sair</button></div>
-      </header>
-      {err && <p className="err" role="alert">{err}</p>}
-      {!events && <p className="muted">Carregando…</p>}
-
-      {cur && (
-        <section className="card hero">
-          <p className="pill">{STATUS[cur.status]}</p>
-          <h1>{fmtDate(cur.event_date)}</h1>
-          {cur.status === 'in_progress' && <p className="big">{cur.present} {cur.present === 1 ? 'pessoa aqui' : 'pessoas aqui'}{cur.team_size ? ` · times de ${cur.team_size}` : ''}</p>}
-          {cur.status === 'in_progress' ? (
-            <>
-              {cur.me_in
-                ? <button className="btn ghost" onClick={() => act('leave')}>Saí da quadra</button>
-                : <button className="btn primary" onClick={() => act('checkin')}>Estou aqui</button>}
-              <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
-            </>
-          ) : <p className="muted">O check-in abre quando um operador iniciar o evento.</p>}
-          {ops && cur.status !== 'in_progress' && <button className="btn" onClick={() => setPanel(panel === 'start' ? null : 'start')}>Iniciar evento e abrir check-in</button>}
-          {ops && cur.status === 'in_progress' && <button className="btn" onClick={() => act('finish')}>Encerrar evento</button>}
-          {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
-        </section>
-      )}
-
-      {panel === 'others' && (
-        <div className="stack">
-          {players.filter((p) => !presentIds.has(p.id)).map((p) => (
-            <button key={p.id} className="card row" onClick={() => act('checkin', { player_id: p.id })}><Avatar p={p} />{p.name}</button>
-          ))}
-        </div>
-      )}
-      {panel === 'start' && (
-        <div className="card stack">
-          <p>Quantos jogadores por time?</p>
-          <div className="stepper">
-            <button className="btn" onClick={() => setSize(Math.max(2, size - 1))}>−</button>
-            <strong>{size}</strong>
-            <button className="btn" onClick={() => setSize(Math.min(6, size + 1))}>+</button>
-          </div>
-          <button className="btn primary" onClick={() => act('start', { team_size: size })}>Começar</button>
-        </div>
-      )}
-      {panel === 'cancel' && (
-        <div className="card stack">
-          <p>Por que o evento foi cancelado?</p>
-          <div className="chips">
-            {['Chuva', 'Quadra ocupada', 'Poucas pessoas'].map((r) => <button key={r} className="chip" onClick={() => setReason(r)}>{r}</button>)}
-          </div>
-          <input placeholder="Motivo" value={reason} onChange={(e) => setReason(e.target.value)} />
-          <button className="btn danger" disabled={reason.trim().length < 3} onClick={() => act('cancel', { reason })}>Confirmar cancelamento</button>
-        </div>
-      )}
-
-      {cur && cur.status === 'in_progress' && (
-        <section>
-          <h3>Na quadra agora</h3>
-          {!present.length && <p className="muted">Ninguém fez check-in ainda. Toque em “Estou aqui”.</p>}
-          <div className="stack">
-            {present.map((p) => (
-              <div key={p.id} className="card row"><Avatar p={p} /><span className="grow">{p.name}</span>
-                <button className="btn ghost small" onClick={() => act('leave', { player_id: p.id })}>Saiu</button></div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!!past.length && (
-        <section>
-          <h3>Eventos passados</h3>
-          <div className="stack">
-            {past.map((e) => (
-              <div key={e.id} className="card">
-                <strong>{fmtDate(e.event_date)}</strong>
-                <p className="muted">{STATUS[e.status]}{e.status === 'cancelled' ? ` — ${e.cancel_reason}` : ` · ${e.present} presentes`}</p>
-                {e.status === 'finished' && <button className="btn small" onClick={() => shareEvent(e)}>Compartilhar resumo</button>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {card && <ShareCard card={card} onClose={() => setCard(null)} />}
-    </main>
-  );
-}
-
 export default function App() {
   const [user, setUser] = useState(undefined);
   const [tab, setTab] = useState('inicio');
   const [viewId, setViewId] = useState(null);
+  const [eventId, setEventId] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
   const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
   useEffect(() => { refresh(); }, [refresh]);
+
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
-  if (!user) return <Auth onDone={refresh} />;
-  if (user.needs_password) {
+  if (!user && showLogin) return <Auth onDone={() => { setShowLogin(false); refresh(); }} onBack={() => setShowLogin(false)} />;
+  if (user?.needs_password) {
     return (
       <main className="screen">
         <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
@@ -231,17 +110,31 @@ export default function App() {
       </main>
     );
   }
-  const tabs = [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['enquetes', 'Enquetes'], ['perfil', 'Perfil']];
+
+  // Visitantes (sem login) veem eventos, ranking e perfis; o resto exige entrar.
+  const tabs = user
+    ? [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['enquetes', 'Enquetes'], ['perfil', 'Perfil']]
+    : [['inicio', 'Eventos'], ['ranking', 'Ranking'], ['entrar', 'Entrar']];
+  const go = (k) => { setViewId(null); setEventId(null); if (k === 'entrar') setShowLogin(true); else setTab(k); };
+  const openPlayer = (id) => { setEventId(null); setViewId(id); setTab('perfil'); };
+  const logout = () => { setUser(null); setTab('inicio'); };
+
+  let page;
+  if (eventId) page = <EventDetail api={api} user={user} id={eventId} onBack={() => setEventId(null)} />;
+  else if (tab === 'ranking') page = <Ranking api={api} onOpen={openPlayer} />;
+  else if (tab === 'perfil' && (user || viewId)) page = <Profile api={api} user={user} playerId={viewId} onBack={() => { setViewId(null); setTab('ranking'); }} onSaved={refresh} />;
+  else if (user && tab === 'quadra') page = <Court api={api} user={user} />;
+  else if (user && tab === 'enquetes') page = <Enquetes api={api} user={user} />;
+  else page = user
+    ? <Home api={api} user={user} onLogout={logout} onOpenEvent={setEventId} />
+    : <PublicHome api={api} onOpenEvent={setEventId} onLogin={() => setShowLogin(true)} />;
+
   return (
     <>
-      {tab === 'inicio' && <Home user={user} onLogout={() => setUser(null)} />}
-      {tab === 'quadra' && <Court api={api} user={user} />}
-      {tab === 'ranking' && <Ranking api={api} onOpen={(id) => { setViewId(id); setTab('perfil'); }} />}
-      {tab === 'enquetes' && <Enquetes api={api} user={user} />}
-      {tab === 'perfil' && <Profile api={api} user={user} playerId={viewId} onBack={() => { setViewId(null); setTab('ranking'); }} onSaved={refresh} />}
+      {page}
       <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
         {tabs.map(([k, label]) => (
-          <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setViewId(null); setTab(k); }}>{label}</button>
+          <button key={k} className={tab === k && !eventId ? 'on' : ''} onClick={() => go(k)}>{label}</button>
         ))}
       </nav>
     </>

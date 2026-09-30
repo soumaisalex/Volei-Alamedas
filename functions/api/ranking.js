@@ -9,7 +9,6 @@ function periodStart(period) {
 }
 
 export const onRequest = handle(async ({ request, sql, user }) => {
-  if (!user) return fail(401, 'Entre para continuar.');
   const from = periodStart(new URL(request.url).searchParams.get('period'));
 
   const [players, teams] = await Promise.all([

@@ -111,7 +111,8 @@ label.btn { display: grid; place-items: center; cursor: pointer; }
 label.btn:focus-within { outline: 3px solid var(--leaf); outline-offset: 2px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.theme-row { display: flex; justify-content: flex-end; }
+.theme-row { display: flex; justify-content: space-between; }
+.theme-row > :only-child { margin-left: auto; }
 
 /* ───── Enquetes ───── */
 textarea { padding: .7rem 1rem; min-height: 6rem; resize: vertical; line-height: 1.4; }
@@ -158,3 +159,11 @@ button.card { overflow-wrap: anywhere; }
    com box-sizing herdado, os cards aninhados ficavam 100% + padding + borda (estouravam ~36 px). */
 details::details-content { box-sizing: border-box; }
 details > p.muted { margin-bottom: .6rem; }
+
+/* ───── Eventos ───── */
+.date { display: block; }
+.date::first-letter { text-transform: uppercase; }
+.card.match { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .6rem; align-items: center; }
+.card.match > :last-child { text-align: right; }
+.card.match .win { font-weight: 800; color: var(--num); }
+.hero h2 { font-size: 1.8rem; }

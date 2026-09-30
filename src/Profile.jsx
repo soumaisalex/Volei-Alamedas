@@ -15,9 +15,9 @@ async function toJpeg(file, size = 320) {
 }
 
 export default function Profile({ api, user, playerId, onBack, onSaved }) {
-  const id = playerId || user.id;
-  const mine = id === user.id;
-  const canEdit = mine || user.role === 'admin';
+  const id = playerId || user?.id;
+  const mine = !!user && id === user.id;
+  const canEdit = mine || user?.role === 'admin';
   const [d, setD] = useState(null);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState(false);
