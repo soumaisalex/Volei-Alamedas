@@ -191,3 +191,5 @@ details > p.muted { margin-bottom: .6rem; }
 .roster ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; align-content: start; }
 .roster li { overflow-wrap: anywhere; }
 .roster .right { text-align: right; }
+
+.admin-polls > .btn { margin-bottom: .8rem; }

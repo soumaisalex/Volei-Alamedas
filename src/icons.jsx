@@ -8,6 +8,8 @@ const PATHS = {
   entrar: <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" />,
 };
 
+PATHS.inicio = PATHS.home;
+
 export function Icon({ name }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true">{PATHS[name]}</svg>;
 }
