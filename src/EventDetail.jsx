@@ -5,6 +5,33 @@ import { STATUS } from './shared.jsx';
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
+// Quem jogou a partida, lado a lado.
+function Roster({ m, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="overlay" role="presentation" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Jogadores da partida" onClick={(e) => e.stopPropagation()}>
+        <div className="roster-head">
+          <strong className={m.a_won ? 'win' : ''}>{m.a}</strong>
+          <span className="score-pill">{m.score_a} x {m.score_b}</span>
+          <strong className={m.a_won ? '' : 'win'}>{m.b}</strong>
+        </div>
+        {m.a_players.length || m.b_players.length ? (
+          <div className="roster">
+            <ul>{m.a_players.map((n, i) => <li key={i}>{n}</li>)}</ul>
+            <ul className="right">{m.b_players.map((n, i) => <li key={i}>{n}</li>)}</ul>
+          </div>
+        ) : <p className="muted">Os jogadores desta partida não foram registrados.</p>}
+        <button className="btn ghost" onClick={onClose}>Fechar</button>
+      </div>
+    </div>
+  );
+}
+
 // Mesmas informações do card compartilhável, em tela. Público (não exige login).
 export default function EventDetail({ api, user, id, onBack }) {
   const [s, setS] = useState(null);
@@ -12,6 +39,7 @@ export default function EventDetail({ api, user, id, onBack }) {
   const [card, setCard] = useState(null);
   const [cancel, setCancel] = useState(false);
   const [reason, setReason] = useState('');
+  const [roster, setRoster] = useState(null);
   const load = useCallback(() => api(`/events/${id}/summary`).then(setS).catch((e) => setErr(e.message)), [api, id]);
   useEffect(() => { load(); }, [load]);
 
@@ -58,13 +86,14 @@ export default function EventDetail({ api, user, id, onBack }) {
           {!!n && (
             <section>
               <h3>Partidas</h3>
+              <p className="muted">Toque numa partida para ver quem jogou.</p>
               <div className="stack">
                 {s.matches.map((m, i) => (
-                  <div key={i} className="card match">
+                  <button key={i} className="card match" aria-label={`Ver jogadores: ${m.a} ${m.score_a} x ${m.score_b} ${m.b}`} onClick={() => setRoster(m)}>
                     <span className={m.a_won ? 'win' : ''}>{m.a}</span>
                     <strong>{m.score_a} x {m.score_b}</strong>
                     <span className={m.a_won ? '' : 'win'}>{m.b}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </section>
@@ -96,6 +125,7 @@ export default function EventDetail({ api, user, id, onBack }) {
           </div>
         ) : <button className="btn danger" onClick={() => setCancel(true)}>Cancelar evento</button>
       )}
+      {roster && <Roster m={roster} onClose={() => setRoster(null)} />}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );

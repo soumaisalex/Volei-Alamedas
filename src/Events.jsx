@@ -14,7 +14,7 @@ export function EventCards({ title, events, onOpen }) {
             <strong className="date">{e.title ? `${e.title}: ` : ''}{fmtDate(e.event_date)}</strong>
             <p className="muted">
               {STATUS[e.status]}
-              {e.status === 'cancelled' ? `: ${e.cancel_reason}` : e.status === 'finished' ? `, ${e.present} presentes` : ''}
+              {e.status === 'cancelled' ? `: ${e.cancel_reason}` : e.status === 'finished' ? `, ${e.attended} ${e.attended === 1 ? 'presente' : 'presentes'}` : ''}
             </p>
           </button>
         ))}

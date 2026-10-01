@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import ThemeButton from './ThemeButton.jsx';
 import { EventCards } from './Events.jsx';
 import Confirm from './Confirm.jsx';
+import Person from './Person.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 
 export default function Home({ api, user, onLogout, onOpenEvent }) {
@@ -79,9 +80,9 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
       )}
 
       {panel === 'others' && (
-        <div className="stack">
+        <div className="pick-grid">
           {players.filter((p) => !presentIds.has(p.id)).map((p) => (
-            <button key={p.id} className="card row" onClick={() => askOk(`Fazer check-in de ${p.name}?`, 'Use só para quem está na quadra e está sem o celular.', 'Fazer check-in', () => act('checkin', { player_id: p.id }))}><Face p={p} /><span className="grow">{p.name}</span></button>
+            <Person key={p.id} name={p.name} photo_url={p.photo_url} onClick={() => askOk(`Fazer check-in de ${p.name}?`, 'Use só para quem está na quadra e está sem o celular.', 'Fazer check-in', () => act('checkin', { player_id: p.id }))} />
           ))}
         </div>
       )}

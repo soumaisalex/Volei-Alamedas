@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { nameSize } from './Person.jsx';
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
@@ -7,8 +8,8 @@ const Face = ({ p }) => (p.photo_url ? <img className="avatar" src={p.photo_url}
 function Player({ p, disabled }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: p.id, disabled });
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} className={`player${p.left ? ' gone' : ''}${isDragging ? ' lift' : ''}`}>
-      <Face p={p} /><span>{p.name}</span>{p.left && <small className="muted">saiu</small>}
+    <div ref={setNodeRef} {...listeners} {...attributes} className={`player pick${p.left ? ' gone' : ''}${isDragging ? ' lift' : ''}`}>
+      <Face p={p} /><span className="nm" style={{ fontSize: nameSize(p.name) }}>{p.name}</span>{p.left && <small className="muted">saiu</small>}
     </div>
   );
 }
@@ -196,7 +197,7 @@ export default function Court({ api, user }) {
           </Zone>
         </section>
 
-        <DragOverlay>{dragged ? <div className="player lift"><Face p={dragged} /><span>{dragged.name}</span></div> : null}</DragOverlay>
+        <DragOverlay>{dragged ? <div className="player pick lift" style={{ width: '7rem' }}><Face p={dragged} /><span className="nm" style={{ fontSize: nameSize(dragged.name) }}>{dragged.name}</span></div> : null}</DragOverlay>
       </DndContext>
 
       {!!recent.length && (

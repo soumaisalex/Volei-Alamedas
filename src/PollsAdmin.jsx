@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import Confirm from './Confirm.jsx';
 
 const EMPTY = { id: null, name: '', emoji: '', description: '', kind: 'player', active: true };
 const day = (d) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
@@ -9,6 +10,7 @@ export default function PollsAdmin({ api, open, onChange }) {
   const [form, setForm] = useState(EMPTY);
   const [avulsa, setAvulsa] = useState({ title: '', options: '', hours: 24 });
   const [msg, setMsg] = useState('');
+  const [confirmAll, setConfirmAll] = useState(false);
 
   const loadAll = useCallback(async () => {
     setCats(await api('/polls/categories'));
@@ -29,6 +31,7 @@ export default function PollsAdmin({ api, open, onChange }) {
 
       <h3>Votações abertas</h3>
       {!open.length && <p className="muted">Nenhuma.</p>}
+      {open.length > 1 && <button className="btn danger" onClick={() => setConfirmAll(true)}>Encerrar todas ({open.length})</button>}
       <div className="stack">
         {open.map((p) => (
           <div key={p.id} className="card stack">
@@ -85,6 +88,11 @@ export default function PollsAdmin({ api, open, onChange }) {
           {form.id && <button className="btn ghost" onClick={() => setForm(EMPTY)}>Cancelar edição</button>}
         </div>
       </div>
+      {confirmAll && (
+        <Confirm title="Encerrar todas as votações?" text="Os resultados são apurados agora e os troféus são entregues. Não dá para desfazer."
+          label="Encerrar todas" danger onCancel={() => setConfirmAll(false)}
+          onOk={async () => { setConfirmAll(false); await call('close-all', {}, (r) => `${r.closed} votações encerradas.`); }} />
+      )}
     </details>
   );
 }

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
 import Home from './Home.jsx';
+import Person from './Person.jsx';
+import { Icon } from './icons.jsx';
 import EventDetail from './EventDetail.jsx';
 import { PublicHome } from './Events.jsx';
 import LoginPick from './Login.jsx';
@@ -64,12 +66,10 @@ function Auth({ onDone, onBack }) {
       {mode === 'entrar' && !pick && (
         <>
           <input placeholder="Buscar seu nome" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="stack">
-            {shown.map((p) => (
-              <button key={p.id} className="card row" onClick={() => setPick(p)}><Avatar p={p} />{p.name}</button>
-            ))}
-            {!shown.length && <p className="muted">Ninguém com esse nome. Toque em “Primeira vez” para se cadastrar.</p>}
+          <div className="pick-grid">
+            {shown.map((p) => <Person key={p.id} name={p.name} photo_url={p.photo_url} onClick={() => setPick(p)} />)}
           </div>
+          {!shown.length && <p className="muted">Ninguém com esse nome. Toque em “Primeira vez” para se cadastrar.</p>}
         </>
       )}
       {mode === 'entrar' && pick && (
@@ -134,7 +134,7 @@ export default function App() {
       {page}
       <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
         {tabs.map(([k, label]) => (
-          <button key={k} className={tab === k && !eventId ? 'on' : ''} onClick={() => go(k)}>{label}</button>
+          <button key={k} className={tab === k && !eventId ? 'on' : ''} aria-label={label} title={label} aria-current={tab === k && !eventId ? 'page' : undefined} onClick={() => go(k)}><Icon name={k === 'inicio' && !user ? 'calendar' : k} /></button>
         ))}
       </nav>
     </>

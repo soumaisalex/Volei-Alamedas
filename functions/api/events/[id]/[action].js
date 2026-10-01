@@ -24,7 +24,11 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
              (select count(*)::int from checkins where event_id = ${id}) as players
       from events where id = ${id}`;
     const matches = await sql`
-      select ta.name as a, tb.name as b, m.score_a, m.score_b, (m.winner_team_id = m.team_a_id) as a_won
+      select ta.name as a, tb.name as b, m.score_a, m.score_b, (m.winner_team_id = m.team_a_id) as a_won,
+             coalesce((select json_agg(p.name order by p.name) from match_players mp join players p on p.id = mp.player_id
+                       where mp.match_id = m.id and mp.team_id = m.team_a_id), '[]'::json) as a_players,
+             coalesce((select json_agg(p.name order by p.name) from match_players mp join players p on p.id = mp.player_id
+                       where mp.match_id = m.id and mp.team_id = m.team_b_id), '[]'::json) as b_players
       from matches m join teams ta on ta.id = m.team_a_id join teams tb on tb.id = m.team_b_id
       where m.event_id = ${id} and m.status = 'finished' order by m.seq`;
     const [champion] = await sql`

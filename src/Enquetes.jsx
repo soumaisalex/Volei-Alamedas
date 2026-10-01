@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import PollsAdmin from './PollsAdmin.jsx';
+import Person from './Person.jsx';
 
 const Face = ({ p }) => (p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.label[0]}</span>);
 
@@ -48,7 +49,15 @@ export default function Enquetes({ api, user }) {
                 <p className="muted">Fecha em {left(p.closes_at)}{p.event_date ? `. Evento de ${day(p.event_date)}.` : '.'}</p>
                 {p.eligible ? (
                   <div className="stack">
-                    {p.options.map((o) => (
+                    {p.event_date && !p.options.some((o) => o.members?.length) ? (
+                      <div className="pick-grid">
+                        {p.options.map((o) => (
+                          <Person key={o.id} name={o.label} photo_url={o.photo_url} className={`opt${p.my_option === o.id ? ' picked' : ''}`} onClick={() => vote(p, o)}>
+                            {p.my_option === o.id && <strong aria-label="Seu voto">✓</strong>}
+                          </Person>
+                        ))}
+                      </div>
+                    ) : p.options.map((o) => (
                       <button key={o.id} className={`card row opt${p.my_option === o.id ? ' picked' : ''}`} onClick={() => vote(p, o)}>
                         <Face p={o} />
                         <span className="grow">{o.label}{!!o.members?.length && <small className="muted"> {o.members.join(', ')}</small>}</span>

@@ -167,3 +167,27 @@ details > p.muted { margin-bottom: .6rem; }
 .card.match > :last-child { text-align: right; }
 .card.match .win { font-weight: 800; color: var(--num); }
 .hero h2 { font-size: 1.8rem; }
+
+/* ───── Menu com ícones ───── */
+.nav button { display: grid; place-items: center; }
+.nav svg { width: 1.7rem; height: 1.7rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ───── Seleção de pessoas: 3 colunas, foto em cima e nome embaixo ───── */
+.pick-grid, .members, .free { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
+.members > p, .free > p { grid-column: 1 / -1; }
+.card.pick, .player.pick { display: grid; justify-items: center; align-content: start; gap: .3rem; padding: .7rem .3rem .6rem; min-height: 0; text-align: center; }
+.player.pick { background: var(--mist); border: 2px solid var(--line); border-radius: 1rem; }
+.pick .avatar { width: 4.2rem; height: 4.2rem; font-size: 1.7rem; }
+.pick .nm { width: 100%; line-height: 1.15; font-weight: 800; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.pick small { line-height: 1.1; }
+.player.gone .nm { text-decoration: line-through; opacity: .6; }
+
+/* ───── Jogadores da partida ───── */
+.roster-head { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .6rem; align-items: center; }
+.roster-head > :last-child { text-align: right; }
+.roster-head .win { color: var(--num); }
+.score-pill { font: 400 1.3rem var(--display); }
+.roster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.roster ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; align-content: start; }
+.roster li { overflow-wrap: anywhere; }
+.roster .right { text-align: right; }

@@ -70,6 +70,12 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     return json({ ok: true }, 201);
   }
 
+  if (action === 'close-all') {
+    const open = await sql`select id from polls where status = 'open'`;
+    for (const p of open) await closePoll(sql, p.id);
+    return json({ closed: open.length });
+  }
+
   if (!UUID.test(b.poll_id || '')) return fail(400, 'Enquete inválida.');
   if (action === 'close') return (await closePoll(sql, b.poll_id)) ? json({ ok: true }) : fail(409, 'Esta enquete já foi encerrada.');
   if (action === 'extend') {

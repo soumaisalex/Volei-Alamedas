@@ -17,6 +17,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
       select e.id, e.status, e.title, e.team_size, e.cancel_reason,
              to_char(e.event_date, 'YYYY-MM-DD') as event_date,
              (select count(*)::int from checkins c where c.event_id = e.id and c.left_at is null) as present,
+             (select count(*)::int from checkins c where c.event_id = e.id) as attended,
              exists (select 1 from checkins c where c.event_id = e.id and c.player_id = ${user?.id ?? null} and c.left_at is null) as me_in
       from events e order by e.event_date desc limit 30`);
   }
