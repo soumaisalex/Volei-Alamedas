@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Admin from './Admin.jsx';
+import ContentAdmin from './ContentAdmin.jsx';
 import { ChangePassword } from './Setup.jsx';
 import ShareCard from './ShareCard.jsx';
 import { playerCard, trophyCard } from './cards.js';
@@ -100,7 +101,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
       </section>
 
       {mine && user.role !== 'player' && <ChangePassword api={api} />}
-      {mine && user.role === 'admin' && <Admin api={api} />}
+      {mine && user.role === 'admin' && <><Admin api={api} /><ContentAdmin api={api} /></>}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );

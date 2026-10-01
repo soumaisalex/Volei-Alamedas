@@ -5,11 +5,14 @@ const PATHS = {
   ranking: <><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3" /></>,
   enquetes: <path d="M5 20V10M12 20V4M19 20v-7" />,
   perfil: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></>,
+  info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.01" /></>,
+  link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
+  rules: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 9h6M9 13h6M9 17h3" /></>,
   entrar: <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" />,
 };
 
 PATHS.inicio = PATHS.home;
 
 export function Icon({ name }) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true">{PATHS[name]}</svg>;
+  return <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">{PATHS[name]}</svg>;
 }

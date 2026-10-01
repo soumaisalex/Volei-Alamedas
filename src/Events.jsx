@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import ThemeButton from './ThemeButton.jsx';
+import { InfoCards } from './InfoCards.jsx';
 import { OPEN, STATUS, fmtDate } from './shared.jsx';
 
 // Lista de eventos; tocar abre o detalhe.
@@ -41,6 +42,7 @@ export function PublicHome({ api, onOpenEvent, onLogin }) {
       {!events && !err && <p className="muted">Carregando…</p>}
       <EventCards title="Próximos eventos" events={open} onOpen={onOpenEvent} />
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
+      <InfoCards api={api} />
     </main>
   );
 }
