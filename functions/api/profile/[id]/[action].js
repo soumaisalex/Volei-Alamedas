@@ -19,7 +19,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   const own = !!user && (user.id === id || can(user, 'admin'));
 
   if (isStats) {
-    const [player] = await sql`select id, name, photo_url, role from players where id = ${id} and active`;
+    const [player] = await sql`select id, name, photo_url, role from players where id = ${id}`;
     if (!player) return fail(404, 'Jogador não encontrado.');
     const [s] = await sql`
       select events_played::int as events, matches_played::int as matches, wins::int as wins, losses::int as losses

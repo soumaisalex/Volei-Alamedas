@@ -27,7 +27,7 @@ export default function Ranking({ api, onOpen }) {
       {d && (
         <>
           <section>
-            <h3>Jogadores</h3>
+            <h3>Top 10 jogadores</h3>
             {!d.players.length && <p className="muted">Ainda não há partidas neste período.</p>}
             <div className="stack">
               {d.players.map((p, i) => (
@@ -42,7 +42,7 @@ export default function Ranking({ api, onOpen }) {
           </section>
 
           <section>
-            <h3>Times que mais venceram</h3>
+            <h3>Top 10 times que mais venceram</h3>
             {!d.teams.length && <p className="muted">Nenhum time venceu partidas neste período.</p>}
             <div className="stack">
               {d.teams.map((t, i) => (

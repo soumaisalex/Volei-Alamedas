@@ -197,3 +197,5 @@ details > p.muted { margin-bottom: .6rem; }
 /* Segurar a foto não abre o menu "salvar imagem" do celular */
 .player, .player * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .pick img, .player img { pointer-events: none; -webkit-user-drag: none; }
+
+.card.pick.off { opacity: .65; filter: grayscale(1); }

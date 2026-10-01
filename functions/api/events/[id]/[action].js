@@ -44,6 +44,12 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       where a.event_id = ${id} group by c.id order by min(c.sort_order)`;
     return json({ ...info, matches, champion: champion ?? null, awards });
   }
+  if (request.method === 'GET' && action === 'blocks') {
+    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores veem os bloqueios.');
+    return json(await sql`
+      select p.id, p.name, p.photo_url from checkin_blocks b join players p on p.id = b.player_id
+      where b.event_id = ${id} order by b.created_at`);
+  }
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
   const body = await readBody(request);
 
@@ -53,6 +59,13 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const pid = body.player_id || user.id;
     if (!UUID.test(pid)) return fail(400, 'Jogador inválido.');
     if (action === 'checkin') {
+      const [chk] = await sql`
+        select exists (select 1 from checkin_blocks where event_id = ${id} and player_id = ${pid}) as blocked,
+               (select active from players where id = ${pid}) as active`;
+      if (chk.blocked) return fail(403, 'Este jogador foi impedido de fazer check-in neste evento.');
+      if (!chk.active) return fail(409, 'Este jogador está inativo.');
+    }
+    if (action === 'checkin') {
       await sql`insert into checkins (event_id, player_id, checked_in_by)
                 values (${id}, ${pid}, ${user.id})
                 on conflict (event_id, player_id) do update set left_at = null, left_marked_by = null`;
@@ -61,6 +74,33 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
                 where event_id = ${id} and player_id = ${pid} and left_at is null`;
       await dissolveTeams(sql, id);
     }
+    return json({ ok: true });
+  }
+
+  if (action === 'block' || action === 'unblock') {
+    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores gerenciam os check-ins.');
+    if (!UUID.test(body.player_id || '')) return fail(400, 'Jogador inválido.');
+    const pid = body.player_id;
+    if (action === 'unblock') {
+      await sql`delete from checkin_blocks where event_id = ${id} and player_id = ${pid}`;
+      return json({ ok: true });
+    }
+    if (ev.status !== 'in_progress') return fail(409, 'O evento não está em andamento.');
+    const [played] = await sql`
+      select exists (select 1 from match_players mp join matches m on m.id = mp.match_id
+                     where m.event_id = ${id} and mp.player_id = ${pid}) as played`;
+    if (played.played) return fail(409, 'Esse jogador já entrou em partidas neste evento e não pode ser removido.');
+    const [tm] = await sql`select team_id from team_members where event_id = ${id} and player_id = ${pid} and left_at is null`;
+    const steps = [
+      sql`update team_members set left_at = now() where event_id = ${id} and player_id = ${pid} and left_at is null`,
+      sql`delete from checkins where event_id = ${id} and player_id = ${pid}`,
+      sql`insert into checkin_blocks (event_id, player_id, blocked_by) values (${id}, ${pid}, ${user.id}) on conflict do nothing`,
+    ];
+    if (tm) {
+      steps.push(sql`update teams set status = 'forming' where id = ${tm.team_id}
+                      and not exists (select 1 from team_members where team_id = ${tm.team_id} and left_at is null)`);
+    }
+    await sql.transaction(steps);
     return json({ ok: true });
   }
 

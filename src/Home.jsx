@@ -5,6 +5,30 @@ import Confirm from './Confirm.jsx';
 import Person from './Person.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 
+// Ações sobre uma pessoa que está na quadra.
+function PresentSheet({ p, ops, onLeave, onRemove, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="overlay" role="presentation" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={p.name} onClick={(e) => e.stopPropagation()}>
+        <div className="row"><Face p={p} /><strong className="grow">{p.name}</strong></div>
+        <button className="btn" onClick={onLeave}>Marcar saída</button>
+        {ops && (
+          <>
+            <p className="muted">Para quem fez check-in sem estar na quadra: apaga o check-in e impede um novo neste evento. Quem já entrou em partidas não pode ser removido.</p>
+            <button className="btn danger" onClick={onRemove}>Remover do evento</button>
+          </>
+        )}
+        <button className="btn ghost" onClick={onClose}>Fechar</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [events, setEvents] = useState(null);
   const [here, setHere] = useState([]);
@@ -16,6 +40,8 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
   const [ask, setAsk] = useState(null);
+  const [sheet, setSheet] = useState(null);
+  const [blocked, setBlocked] = useState([]);
   const askOk = (title, text, label, run, danger) => setAsk({ title, text, label, run, danger });
   const ops = user.role === 'admin' || user.role === 'operator';
   const cur = events ? pickCurrent(events) : null;
@@ -26,8 +52,10 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
     const list = await api('/events');
     setEvents(list);
     const c = pickCurrent(list);
-    setHere(c && c.status === 'in_progress' ? await api(`/events/${c.id}/checkins`) : []);
-  }, [api]);
+    const liveNow = c && c.status === 'in_progress';
+    setHere(liveNow ? await api(`/events/${c.id}/checkins`) : []);
+    setBlocked(liveNow && ops ? await api(`/events/${c.id}/blocks`) : []);
+  }, [api, ops]);
   useEffect(() => { load().catch((e) => setErr(e.message)); api('/players').then(setPlayers).catch(() => {}); }, [load, api]);
 
   const act = async (action, body) => {
@@ -46,6 +74,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
 
   const present = here.filter((p) => !p.left_at);
   const presentIds = new Set(present.map((p) => p.id));
+  const blockedIds = new Set(blocked.map((p) => p.id));
   const live = cur?.status === 'in_progress';
 
   return (
@@ -81,7 +110,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
 
       {panel === 'others' && (
         <div className="pick-grid">
-          {players.filter((p) => !presentIds.has(p.id)).map((p) => (
+          {players.filter((p) => !presentIds.has(p.id) && !blockedIds.has(p.id)).map((p) => (
             <Person key={p.id} name={p.name} photo_url={p.photo_url} onClick={() => askOk(`Fazer check-in de ${p.name}?`, 'Use só para quem está na quadra e está sem o celular.', 'Fazer check-in', () => act('checkin', { player_id: p.id }))} />
           ))}
         </div>
@@ -110,12 +139,21 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
         <section>
           <h3>Na quadra agora</h3>
           {!present.length && <p className="muted">Ninguém fez check-in ainda. Toque em “Estou aqui”.</p>}
-          <div className="stack">
-            {present.map((p) => (
-              <div key={p.id} className="card row"><Face p={p} /><span className="grow">{p.name}</span>
-                <button className="btn ghost small" onClick={() => askOk(`Marcar a saída de ${p.name}?`, 'A pessoa será marcada como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Marcar saída', () => act('leave', { player_id: p.id }), true)}>Saiu</button></div>
-            ))}
+          <div className="pick-grid">
+            {present.map((p) => <Person key={p.id} name={p.name} photo_url={p.photo_url} onClick={() => setSheet(p)} />)}
           </div>
+          {!!present.length && <p className="muted">Toque numa pessoa para marcar a saída{ops ? ' ou removê-la do evento' : ''}.</p>}
+          {ops && !!blocked.length && (
+            <>
+              <h3>Bloqueados neste evento</h3>
+              <div className="stack">
+                {blocked.map((p) => (
+                  <div key={p.id} className="card row"><Face p={p} /><span className="grow">{p.name}</span>
+                    <button className="btn ghost small" onClick={() => askOk(`Liberar o check-in de ${p.name}?`, 'A pessoa poderá fazer check-in de novo neste evento.', 'Liberar', () => act('unblock', { player_id: p.id }))}>Liberar</button></div>
+                ))}
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -133,6 +171,11 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
       )}
 
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
+      {sheet && (
+        <PresentSheet p={sheet} ops={ops} onClose={() => setSheet(null)}
+          onLeave={() => { const p = sheet; setSheet(null); askOk(`Marcar a saída de ${p.name}?`, 'A pessoa será marcada como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Marcar saída', () => act('leave', { player_id: p.id }), true); }}
+          onRemove={() => { const p = sheet; setSheet(null); askOk(`Remover ${p.name} do evento?`, 'O check-in será apagado e a pessoa não poderá fazer check-in de novo neste evento.', 'Remover e bloquear', () => act('block', { player_id: p.id }), true); }} />
+      )}
       {ask && <Confirm {...ask} onCancel={() => setAsk(null)} onOk={async () => { const run = ask.run; setAsk(null); await run(); }} />}
     </main>
   );

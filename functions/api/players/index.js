@@ -1,8 +1,11 @@
-import { handle, json, fail, readBody, createSession } from '../../_lib/util.js';
+import { handle, json, fail, can, readBody, createSession } from '../../_lib/util.js';
 
-export const onRequest = handle(async ({ request, env, sql }) => {
+export const onRequest = handle(async ({ request, env, sql, user }) => {
   if (request.method === 'GET') {
-    return json(await sql`select id, name, photo_url, role, (password_hash is not null) as has_password from players where active order by name`);
+    const all = new URL(request.url).searchParams.get('all') === '1' && can(user, 'admin');
+    return json(all
+      ? await sql`select id, name, photo_url, role, active, (password_hash is not null) as has_password from players order by name`
+      : await sql`select id, name, photo_url, role, active, (password_hash is not null) as has_password from players where active order by name`);
   }
   if (request.method !== 'POST') return fail(405, 'Método não permitido');
 

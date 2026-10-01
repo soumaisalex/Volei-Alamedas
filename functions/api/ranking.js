@@ -22,7 +22,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
         join matches m on m.id = mp.match_id and m.status = 'finished' and m.finished_at >= ${from}::timestamptz
         join players p on p.id = mp.player_id
         group by p.id
-      ) r order by wins desc, wins::float / matches desc, matches desc, name limit 50`,
+      ) r order by wins desc, wins::float / matches desc, matches desc, name limit 10`,
     sql`
       select t.name, to_char(e.event_date, 'YYYY-MM-DD') as event_date, count(*)::int as wins,
              (select coalesce(json_agg(distinct p.name), '[]'::json)
@@ -32,7 +32,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
       join events e on e.id = m.event_id
       where m.status = 'finished' and m.finished_at >= ${from}::timestamptz
       group by t.id, e.event_date
-      order by wins desc, e.event_date desc limit 5`,
+      order by wins desc, e.event_date desc limit 10`,
   ]);
   return json({ players, teams });
 });
