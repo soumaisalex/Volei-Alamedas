@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
 import RichText from './richtext.jsx';
 import { ITEMS } from './InfoCards.jsx';
@@ -15,6 +15,16 @@ function Editor({ api, item, initial, onSaved, onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const ta = useRef(null);
+  // Envolve o trecho selecionado (ou um "texto" de exemplo) com o marcador.
+  const wrap = (mk) => {
+    const el = ta.current;
+    if (!el) return;
+    const a = el.selectionStart, b = el.selectionEnd;
+    const sel = text.slice(a, b) || 'texto';
+    setText(text.slice(0, a) + mk + sel + mk + text.slice(b));
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(a + mk.length, a + mk.length + sel.length); });
+  };
   const add = (snippet) => setText((t) => `${t}${t && !t.endsWith('\n') ? '\n' : ''}${snippet}`);
   const nextNumber = () => {
     const last = text.trimEnd().split('\n').pop() || '';
@@ -35,17 +45,19 @@ function Editor({ api, item, initial, onSaved, onClose }) {
         {preview ? (
           text.trim() ? <RichText text={text} asLinks={item[0] === 'links'} /> : <p className="muted">Nada escrito ainda.</p>
         ) : (
-          <textarea rows={10} maxLength={5000} aria-label={item[1]} value={text} onChange={(e) => setText(e.target.value)}
-            placeholder={'Escreva um item por linha.\n1. Primeiro item\n- Marcador\n"Google"[https://www.google.com]'} />
+          <textarea ref={ta} rows={10} maxLength={5000} aria-label={item[1]} value={text} onChange={(e) => setText(e.target.value)}
+            placeholder={'Escreva um item por linha.\n1. Primeiro item\n- Marcador\n"Google"[https://www.google.com]\n*negrito* e _itálico_'} />
         )}
         {!preview && (
           <div className="chips">
+            <button className="chip" onClick={() => wrap('*')}><strong>N</strong> Negrito</button>
+            <button className="chip" onClick={() => wrap('_')}><em>I</em> Itálico</button>
             <button className="chip" onClick={() => add('- ')}>Marcador</button>
             <button className="chip" onClick={() => add(`${nextNumber()}. `)}>Numeração</button>
             <button className="chip" onClick={() => add('"Texto do link"[https://]')}>Link</button>
           </div>
         )}
-        <p className="muted">Use “1. ” para numeração, “- ” para marcadores e “Texto”[endereço] para links. O resto vira parágrafo. {text.length}/5000</p>
+        <p className="muted">Use “1. ” para numeração, “- ” para marcadores e “Texto”[endereço] para links, *negrito* e _itálico_ para destacar. O resto vira parágrafo. {text.length}/5000</p>
         <button className="btn" onClick={() => setPreview(!preview)}>{preview ? 'Voltar a editar' : 'Ver como fica'}</button>
         <button className="btn primary" disabled={saving} onClick={save}>{saving ? 'Salvando…' : 'Salvar'}</button>
         <button className="btn ghost" onClick={onClose}>Cancelar</button>

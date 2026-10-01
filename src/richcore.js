@@ -15,17 +15,39 @@ export function cleanUrl(raw) {
   return u ? `https://${u}` : null;
 }
 
+// *negrito* e _itálico_ (como no WhatsApp): o marcador não pode estar colado em letra/número
+// e não pode ter espaço logo depois de abrir ou antes de fechar. Pode aninhar.
+const BOLD = /(^|[^\p{L}\p{N}_*])\*(?=\S)([^*\n]*?\S)\*(?![\p{L}\p{N}*])/u;
+const ITAL = /(^|[^\p{L}\p{N}_])_(?=\S)([^_\n]*?\S)_(?![\p{L}\p{N}_])/u;
+
+function emphasis(text) {
+  const out = [];
+  let rest = text;
+  while (rest) {
+    const found = [['b', BOLD.exec(rest)], ['i', ITAL.exec(rest)]]
+      .filter(([, m]) => m)
+      .sort((a, b) => a[1].index + a[1][1].length - (b[1].index + b[1][1].length))[0];
+    if (!found) { out.push({ t: 'text', v: rest }); break; }
+    const [t, m] = found;
+    const start = m.index + m[1].length;
+    if (start > 0) out.push({ t: 'text', v: rest.slice(0, start) });
+    out.push({ t, children: emphasis(m[2]) });
+    rest = rest.slice(m.index + m[0].length);
+  }
+  return out;
+}
+
 export function splitInline(text) {
   const re = new RegExp(LINK_SRC, 'g');
   const out = [];
   let last = 0, m;
   while ((m = re.exec(text))) {
-    if (m.index > last) out.push({ t: 'text', v: text.slice(last, m.index) });
+    if (m.index > last) out.push(...emphasis(text.slice(last, m.index)));
     const href = cleanUrl(m[2]);
     out.push(href ? { t: 'link', label: m[1], href } : { t: 'text', v: m[0] });
     last = m.index + m[0].length;
   }
-  if (last < text.length) out.push({ t: 'text', v: text.slice(last) });
+  if (last < text.length) out.push(...emphasis(text.slice(last)));
   return out;
 }
 
