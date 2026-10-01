@@ -20,9 +20,9 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   if (action === 'team-create') {
     const [{ n }] = await sql`select count(*)::int as n from teams where event_id = ${id}`;
     const name = String(b.name || '').trim() || `Time ${String.fromCharCode(65 + (n % 26))}`;
-    await sql`insert into teams (event_id, name, queue_pos)
-              select ${id}, ${name}, coalesce(max(queue_pos), 0) + 1 from teams where event_id = ${id}`;
-    return json({ ok: true });
+    const [t] = await sql`insert into teams (event_id, name, queue_pos)
+              select ${id}, ${name}, coalesce(max(queue_pos), 0) + 1 from teams where event_id = ${id} returning id`;
+    return json({ ok: true, id: t.id });
   }
 
   if (action === 'team-rename') {

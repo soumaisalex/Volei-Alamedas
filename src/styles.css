@@ -193,3 +193,7 @@ details > p.muted { margin-bottom: .6rem; }
 .roster .right { text-align: right; }
 
 .admin-polls > .btn { margin-bottom: .8rem; }
+
+/* Segurar a foto não abre o menu "salvar imagem" do celular */
+.player, .player * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.pick img, .player img { pointer-events: none; -webkit-user-drag: none; }
