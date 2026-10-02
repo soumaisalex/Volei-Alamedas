@@ -1,4 +1,4 @@
-import { handle, json, fail } from '../_lib/util.js';
+import { handle, json, can } from '../_lib/util.js';
 
 // Início do período no horário de Aracaju (UTC-3).
 function periodStart(period) {
@@ -9,7 +9,9 @@ function periodStart(period) {
 }
 
 export const onRequest = handle(async ({ request, sql, user }) => {
-  const from = periodStart(new URL(request.url).searchParams.get('period'));
+  const params = new URL(request.url).searchParams;
+  const from = periodStart(params.get('period'));
+  const cap = params.get('all') === '1' && can(user, 'admin') ? 500 : 10; // lista completa: só admin
 
   const [players, teams] = await Promise.all([
     sql`
@@ -22,7 +24,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
         join matches m on m.id = mp.match_id and m.status = 'finished' and m.finished_at >= ${from}::timestamptz
         join players p on p.id = mp.player_id
         group by p.id
-      ) r order by wins desc, wins::float / matches desc, matches desc, name limit 10`,
+      ) r order by wins desc, wins::float / matches desc, matches desc, name limit ${cap}`,
     sql`
       select t.name, to_char(e.event_date, 'YYYY-MM-DD') as event_date, count(*)::int as wins,
              (select coalesce(json_agg(distinct p.name), '[]'::json)
@@ -32,7 +34,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
       join events e on e.id = m.event_id
       where m.status = 'finished' and m.finished_at >= ${from}::timestamptz
       group by t.id, e.event_date
-      order by wins desc, e.event_date desc limit 10`,
+      order by wins desc, e.event_date desc limit ${cap}`,
   ]);
   return json({ players, teams });
 });

@@ -228,3 +228,10 @@ h3.spaced { margin-top: 1.4rem; }
 
 /* Ações perigosas: vermelho cheio com texto branco */
 .btn.danger, .chip.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Título que é uma lista (ranking, para o admin) */
+.selwrap { position: relative; display: inline-block; max-width: 100%; }
+.selwrap select { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; background: transparent; border: 0; border-bottom: 2px dashed var(--line); border-radius: 0; padding: .2rem 1.5rem .2rem 0; min-height: 2.4rem; cursor: pointer; max-width: 100%; }
+.selwrap select:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; }
+.selwrap option { color: #000; background: #fff; }
+.selwrap::after { content: "▾"; position: absolute; right: .1rem; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }

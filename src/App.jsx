@@ -123,7 +123,7 @@ export default function App() {
 
   let page;
   if (eventId) page = <EventDetail api={api} user={user} id={eventId} onBack={() => setEventId(null)} />;
-  else if (tab === 'ranking') page = <Ranking api={api} onOpen={openPlayer} />;
+  else if (tab === 'ranking') page = <Ranking api={api} user={user} onOpen={openPlayer} />;
   else if (tab === 'perfil' && (user || viewId)) page = <Profile api={api} user={user} playerId={viewId} onBack={() => { setViewId(null); setTab('ranking'); }} onSaved={refresh} />;
   else if (user && tab === 'quadra') page = <Court api={api} user={user} />;
   else if (user && tab === 'enquetes') page = <Enquetes api={api} user={user} />;
