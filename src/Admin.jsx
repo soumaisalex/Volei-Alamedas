@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Person from './Person.jsx';
+import { maskPhone } from './shared.jsx';
 
 const ROLE = { admin: 'Admin', operator: 'Operador', player: '' };
 
@@ -23,7 +24,7 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
       <div className="sheet" role="dialog" aria-modal="true" aria-label={`Opções de ${p.name}`} onClick={(e) => e.stopPropagation()}>
         <div className="row">
           {p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.name[0]}</span>}
-          <div className="grow"><strong>{p.name}</strong><br /><span className="muted">{status}</span></div>
+          <div className="grow"><strong>{p.name}</strong><br />{p.phone && <><span className="phone">{maskPhone(p.phone)}</span><br /></>}<span className="muted">{status}</span></div>
         </div>
         {err && <p className="err" role="alert">{err}</p>}
         {issued && (
