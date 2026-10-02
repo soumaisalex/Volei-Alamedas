@@ -106,7 +106,7 @@ export default function Admin({ api }) {
       </div>
       {!!inactive.length && (
         <>
-          <h3>Inativos ({inactive.length})</h3>
+          <h3 className="spaced">Inativos ({inactive.length})</h3>
           <div className="pick-grid">
             {inactive.map((p) => (
               <Person key={p.id} name={p.name} photo_url={p.photo_url} className="off" onClick={() => open(p.id)}>

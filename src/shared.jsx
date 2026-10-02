@@ -2,6 +2,12 @@ export const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 export const STATUS = { finished: 'Encerrado', cancelled: 'Cancelado', in_progress: 'Em andamento', scheduled: 'Agendado', checkin_open: 'Agendado' };
 export const fmtDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
 export const today = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10); // horário de Aracaju
+export const maskPhone = (v) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length > 6) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length > 2) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return d ? `(${d}` : '';
+};
 export const Face = ({ p }) => (p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.name[0]}</span>);
 
 // O evento "atual": o que está em andamento ou, senão, o agendado mais próximo.

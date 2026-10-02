@@ -3,6 +3,7 @@ import Court from './Court.jsx';
 import Ranking from './Ranking.jsx';
 import Home from './Home.jsx';
 import Person from './Person.jsx';
+import Footer from './Footer.jsx';
 import { Icon } from './icons.jsx';
 import EventDetail from './EventDetail.jsx';
 import { PublicHome } from './Events.jsx';
@@ -98,7 +99,7 @@ export default function App() {
   useEffect(() => { refresh(); }, [refresh]);
 
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
-  if (!user && showLogin) return <Auth onDone={() => { setShowLogin(false); refresh(); }} onBack={() => setShowLogin(false)} />;
+  if (!user && showLogin) return <><Auth onDone={() => { setShowLogin(false); refresh(); }} onBack={() => setShowLogin(false)} /><Footer /></>;
   if (user?.needs_password) {
     return (
       <main className="screen">
@@ -107,6 +108,7 @@ export default function App() {
         <p className="muted">Contas de admin e operador agora entram com senha própria. Até criar a sua, os recursos de gestão ficam bloqueados.</p>
         <SetupForm api={api} playerId={user.id} onDone={refresh} />
         <button className="btn ghost" onClick={() => api('/auth/logout', { body: {} }).then(() => setUser(null))}>Sair</button>
+        <Footer />
       </main>
     );
   }
@@ -132,6 +134,7 @@ export default function App() {
   return (
     <>
       {page}
+      <Footer />
       <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
         {tabs.map(([k, label]) => (
           <button key={k} className={tab === k && !eventId ? 'on' : ''} aria-label={label} title={label} aria-current={tab === k && !eventId ? 'page' : undefined} onClick={() => go(k)}><Icon name={k === 'inicio' && !user ? 'calendar' : k} /></button>

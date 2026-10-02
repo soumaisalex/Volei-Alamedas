@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { MODES, getMode, applyMode } from './theme.js';
+import { Icon } from './icons.jsx';
 
-const ICON = { auto: '◐', light: '☀', dark: '☾' };
-const SHORT = { auto: 'Auto', light: 'Claro', dark: 'Escuro' };
+const ICON = { auto: 'auto', light: 'sun', dark: 'moon' };
 const LONG = { auto: 'Tema automático', light: 'Tema claro', dark: 'Tema escuro' };
 
+// Só o ícone do modo atual (auto, claro ou escuro); cada toque troca para o próximo.
 export default function ThemeButton() {
   const [mode, setMode] = useState(getMode);
   const next = () => {
@@ -13,8 +14,8 @@ export default function ThemeButton() {
     setMode(m);
   };
   return (
-    <button className="btn ghost small" onClick={next} aria-label={`${LONG[mode]}. Toque para trocar.`}>
-      {ICON[mode]} {SHORT[mode]}
+    <button className="btn ghost small icon" onClick={next} aria-label={`${LONG[mode]}. Toque para trocar.`} title={LONG[mode]}>
+      <Icon name={ICON[mode]} />
     </button>
   );
 }
