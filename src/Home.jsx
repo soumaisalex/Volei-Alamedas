@@ -35,7 +35,6 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [here, setHere] = useState([]);
   const [players, setPlayers] = useState([]);
   const [panel, setPanel] = useState(null);
-  const [size, setSize] = useState(4);
   const [reason, setReason] = useState('');
   const [newEv, setNewEv] = useState({ date: '', title: '' });
   const [err, setErr] = useState('');
@@ -103,7 +102,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
               <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
             </>
           ) : <p className="muted">O check-in abre quando um operador iniciar o evento.</p>}
-          {ops && !live && <button className="btn" onClick={() => setPanel(panel === 'start' ? null : 'start')}>Iniciar evento e abrir check-in</button>}
+          {ops && !live && <button className="btn" onClick={() => askOk('Iniciar o evento?', 'O check-in será aberto para todos. O tamanho dos times é livre: monte as linhas como quiser na tela da Quadra.', 'Iniciar evento', () => act('start'))}>Iniciar evento e abrir check-in</button>}
           {ops && live && <button className="btn" onClick={() => askOk('Encerrar o evento?', 'O evento termina e as votações das enquetes abrem por 24 horas. Não será possível continuar as partidas.', 'Encerrar evento', () => act('finish'), true)}>Encerrar evento</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
         </section>
@@ -116,18 +115,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
           ))}
         </div>
       )}
-      {panel === 'start' && (
-        <div className="card stack">
-          <p>Quantos jogadores por time?</p>
-          <div className="stepper">
-            <button className="btn" aria-label="Menos um" onClick={() => setSize(Math.max(2, size - 1))}>−</button>
-            <strong>{size}</strong>
-            <button className="btn" aria-label="Mais um" onClick={() => setSize(Math.min(6, size + 1))}>+</button>
-          </div>
-          <button className="btn primary" onClick={() => askOk('Iniciar o evento?', `Os times serão de ${size} jogadores e o check-in será aberto para todos.`, 'Iniciar evento', () => act('start', { team_size: size }))}>Começar</button>
-        </div>
-      )}
-      {panel === 'cancel' && (
+            {panel === 'cancel' && (
         <div className="card stack">
           <p>Por que o evento foi cancelado?</p>
           <div className="chips">{['Chuva', 'Quadra ocupada', 'Poucas pessoas'].map((r) => <button key={r} className="chip" onClick={() => setReason(r)}>{r}</button>)}</div>

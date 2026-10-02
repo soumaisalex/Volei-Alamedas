@@ -19,7 +19,7 @@ function Zone({ id, className, children }) {
   return <div ref={setNodeRef} className={`${className}${isOver ? ' over' : ''}`}>{children}</div>;
 }
 
-function Team({ t, size, ops, canRename, onRename, onPick, children }) {
+function Team({ t, ops, canRename, onRename, onPick, children }) {
   const [name, setName] = useState(null);
   const filled = t.members.filter((m) => !m.left).length;
   return (
@@ -36,7 +36,7 @@ function Team({ t, size, ops, canRename, onRename, onPick, children }) {
             <button className="chip" disabled={!name.trim()} onClick={() => { onRename(t.id, name); setName(null); }}>Salvar</button>
           </>
         )}
-        <span className="pill">{filled}/{size}</span>
+        <span className="pill">{filled} jog.</span>
       </div>
       <div className="members">
         {t.members.map((m) => <Player key={m.id} p={m} disabled={!ops} onPick={onPick} />)}
@@ -56,7 +56,7 @@ const Step = ({ v, set }) => (
 );
 
 // Alternativa ao arrastar: toque no jogador e escolha o destino.
-function MoveSheet({ p, teams, size, onMove, onClose }) {
+function MoveSheet({ p, teams, onMove, onClose }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -71,10 +71,9 @@ function MoveSheet({ p, teams, size, onMove, onClose }) {
           {teams.map((t) => {
             const filled = t.members.filter((m) => !m.left).length;
             const here = current?.id === t.id;
-            const full = filled >= size && !here;
             return (
-              <button key={t.id} className="btn" disabled={here || full} onClick={() => onMove(t.id)}>
-                {t.name} ({filled}/{size}){here ? ' (atual)' : full ? ' (completo)' : ''}
+              <button key={t.id} className="btn" disabled={here} onClick={() => onMove(t.id)}>
+                {t.name} ({filled} jog.){here ? ' (atual)' : ''}
               </button>
             );
           })}
@@ -148,14 +147,14 @@ export default function Court({ api, user }) {
   if (!data) return <main className="screen"><p className="muted">Carregando…</p>{err && <p className="err">{err}</p>}</main>;
 
   const { event, teams, free, match, recent } = data;
-  const size = event.team_size;
   const byId = Object.fromEntries(teams.map((t) => [t.id, t]));
   const queue = teams.filter((t) => t.queue_pos != null);
   const sides = match ? [byId[match.team_a_id], byId[match.team_b_id]] : [];
   const next = queue.slice(0, 2);
   const canStart = next.length === 2 && next.every((t) => t.status === 'active');
   const dragged = [...free, ...teams.flatMap((t) => t.members)].find((p) => p.id === active);
-  const short = next.filter((t) => t.members.filter((m) => !m.left).length < size);
+  const counts = next.map((t) => t.members.filter((m) => !m.left).length);
+  const uneven = counts.length === 2 && counts[0] !== counts[1];
 
   return (
     <main className="screen">
@@ -179,7 +178,7 @@ export default function Court({ api, user }) {
               {sides.map((t, i) => {
                 const key = i ? 'b' : 'a';
                 return (
-                  <Team key={t.id} t={t} size={size} ops={false} canRename={ops} onRename={rename}>
+                  <Team key={t.id} t={t} ops={false} canRename={ops} onRename={rename}>
                     <div className="score">
                       {ops ? <button className="btn" aria-label="Menos um ponto" onClick={() => run('match-score', { side: key, delta: -1 })}>−</button> : <span />}
                       <strong>{match[`score_${key}`]}</strong>
@@ -207,7 +206,7 @@ export default function Court({ api, user }) {
               {next.length === 2
                 ? <p className="big">{next[0].name} x {next[1].name}</p>
                 : <p className="muted">Monte pelo menos 2 times para começar.</p>}
-              {!!short.length && <p className="muted">{short.map((t) => `${t.name} está incompleto`).join('. ')}. Dá para começar assim mesmo.</p>}
+              {uneven && <p className="muted">{next[0].name} tem {counts[0]} e {next[1].name} tem {counts[1]} jogadores. Dá para começar assim mesmo.</p>}
               {ops && <button className="btn primary" disabled={!canStart} onClick={() => run('match-start')}>Começar partida</button>}
             </div>
           )}
@@ -217,7 +216,7 @@ export default function Court({ api, user }) {
           <h3>Fila (linha-fora)</h3>
           <div className="stack">
             {queue.map((t, i) => (
-              <Team key={t.id} t={t} size={size} ops={ops} canRename={ops} onRename={rename} onPick={openMove}>
+              <Team key={t.id} t={t} ops={ops} canRename={ops} onRename={rename} onPick={openMove}>
                 <div className="qhead">
                   <span className="pill">{i + 1}º na fila</span>
                   <small className="muted grow">{!match && i < 2 ? 'joga a seguir' : ''}</small>
@@ -259,7 +258,7 @@ export default function Court({ api, user }) {
           </div>
         </section>
       )}
-      {moving && <MoveSheet p={moving} teams={queue} size={size} onMove={moveTo} onClose={closeMove} />}
+      {moving && <MoveSheet p={moving} teams={queue} onMove={moveTo} onClose={closeMove} />}
     </main>
   );
 }

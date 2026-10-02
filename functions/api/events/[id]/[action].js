@@ -106,9 +106,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
 
   if (action === 'start') {
     if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores iniciam o evento.');
-    const size = Number(body.team_size);
-    if (!Number.isInteger(size) || size < 2 || size > 6) return fail(400, 'Informe de 2 a 6 jogadores por time.');
-    const done = await sql`update events set status = 'in_progress', team_size = ${size}, started_at = now()
+    const done = await sql`update events set status = 'in_progress', started_at = now()
                            where id = ${id} and status in ('scheduled', 'checkin_open')
                              and not exists (select 1 from events where status = 'in_progress') returning id`;
     return done.length ? json({ ok: true }) : fail(409, 'Já existe um evento em andamento, ou este não pode ser iniciado agora.');

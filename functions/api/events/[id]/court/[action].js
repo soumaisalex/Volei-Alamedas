@@ -67,7 +67,6 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
         select tm.id, (c.left_at is not null) as gone from team_members tm
         join checkins c on c.event_id = tm.event_id and c.player_id = tm.player_id
         where tm.team_id = ${tid} and tm.left_at is null`;
-      if (members.filter((x) => !x.gone).length >= ev.team_size) return fail(409, 'Esse time já está completo.');
       const gone = members.find((x) => x.gone);
       if (gone) steps.push(sql`update team_members set left_at = now() where id = ${gone.id}`); // reposição
       steps.push(
@@ -96,9 +95,15 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     if (!y) return fail(409, 'Precisa de pelo menos 2 times na fila.');
     const empty = [x, y].find((t) => t.status === 'forming');
     if (empty) return fail(409, `Monte o ${empty.name} antes de começar.`);
+    // O tamanho dos times é livre: a partida guarda o maior número de jogadores presentes entre os dois times.
+    const sizes = await sql`
+      select count(*)::int as n from team_members tm
+      join checkins c on c.event_id = tm.event_id and c.player_id = tm.player_id
+      where tm.team_id in (${x.id}, ${y.id}) and tm.left_at is null and c.left_at is null group by tm.team_id`;
+    const size = Math.max(1, ...sizes.map((r) => r.n));
     const [m] = await sql`
       insert into matches (event_id, seq, team_a_id, team_b_id, team_size, points_target)
-      select ${id}, coalesce(max(seq), 0) + 1, ${x.id}, ${y.id}, ${ev.team_size}, ${ev.points_target}
+      select ${id}, coalesce(max(seq), 0) + 1, ${x.id}, ${y.id}, ${size}, ${ev.points_target}
       from matches where event_id = ${id} returning id`;
     await sql.transaction([
       sql`insert into match_players (match_id, player_id, team_id)
