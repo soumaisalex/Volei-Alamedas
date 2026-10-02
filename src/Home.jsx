@@ -4,6 +4,7 @@ import { EventCards } from './Events.jsx';
 import Confirm from './Confirm.jsx';
 import Person from './Person.jsx';
 import { InfoCards } from './InfoCards.jsx';
+import Footer from './Footer.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 
 // Ações sobre uma pessoa que está na quadra.
@@ -161,6 +162,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
 
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
       <InfoCards api={api} />
+      <Footer />
       {sheet && (
         <PresentSheet p={sheet} ops={ops} onClose={() => setSheet(null)}
           onLeave={() => { const p = sheet; setSheet(null); askOk(`Marcar a saída de ${p.name}?`, 'A pessoa será marcada como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Marcar saída', () => act('leave', { player_id: p.id }), true); }}

@@ -1,3 +1,5 @@
+import { AUTHOR } from './credits.js';
+
 // Cards compartilháveis em 9:16 (PNG 1080x1920: status do WhatsApp, stories e reels),
 // desenhados no navegador com a identidade da logo. O conteúdo fica longe das bordas
 // superior e inferior, que os aplicativos cobrem com a interface.
@@ -84,6 +86,7 @@ async function avatar(ctx, p, cx, cy, r) {
 
 function finish(canvas, ctx) {
   txt(ctx, 'Vôlei Alamedas Jardins', 540, 1790, { size: 30, weight: '800', color: C.tint });
+  txt(ctx, `Desenvolvido por ${AUTHOR}`, 540, 1832, { size: 24, color: 'rgba(217, 240, 218, .75)' });
   return new Promise((ok, no) => canvas.toBlob((b) => (b ? ok(b) : no(new Error('Falha ao gerar a imagem.'))), 'image/png'));
 }
 
