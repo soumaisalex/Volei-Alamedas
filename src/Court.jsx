@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { nameSize } from './Person.jsx';
+import Confirm from './Confirm.jsx';
+import { ScoreEditor } from './MatchActions.jsx';
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
@@ -88,6 +90,7 @@ function MoveSheet({ p, teams, onMove, onClose }) {
 
 export default function Court({ api, user }) {
   const ops = user.role === 'admin' || user.role === 'operator';
+  const admin = user.role === 'admin';
   const [eid, setEid] = useState(null);
   const [data, setData] = useState(null);
   const [idle, setIdle] = useState('');
@@ -95,6 +98,9 @@ export default function Court({ api, user }) {
   const [active, setActive] = useState(null);
   const [fin, setFin] = useState(null);
   const [moving, setMoving] = useState(null);
+  const [cancelAsk, setCancelAsk] = useState(false);
+  const [fixing, setFixing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const lastDrag = useRef(0); // evita tratar o fim de um arrasto como toque
   const busy = useRef(false); // pausa a atualização automática enquanto arrasta ou digita o placar final
   const sensors = useSensors(
@@ -130,6 +136,11 @@ export default function Court({ api, user }) {
     await load().catch(() => {});
   };
   const rename = (team_id, name) => run('team-rename', { team_id, name });
+  const call = async (path, body) => {
+    setErr('');
+    try { await api(path, { body }); } catch (e) { setErr(e.message); }
+    await load().catch(() => {});
+  };
   const closeMove = () => { busy.current = false; setMoving(null); };
   const openMove = (p) => { if (Date.now() - lastDrag.current < 400) return; busy.current = true; setMoving(p); };
   const moveTo = async (dest) => {
@@ -191,6 +202,7 @@ export default function Court({ api, user }) {
               {ops && !fin && (
                 <button className="btn primary" onClick={() => { busy.current = true; setFin({ a: match.score_a, b: match.score_b }); }}>Encerrar partida</button>
               )}
+              {ops && !fin && <button className="btn danger" onClick={() => setCancelAsk(true)}>Cancelar partida</button>}
               {ops && fin && (
                 <div className="card stack">
                   <p className="big">Placar final</p>
@@ -250,13 +262,37 @@ export default function Court({ api, user }) {
         <section>
           <h3>Últimas partidas</h3>
           <div className="stack">
-            {recent.map((r) => (
-              <div key={r.seq} className="card">
-                <strong>{r.a_won ? r.a : r.b}</strong> venceu {r.a_won ? r.b : r.a} por {Math.max(r.score_a, r.score_b)} a {Math.min(r.score_a, r.score_b)}
-              </div>
-            ))}
+            {recent.map((r, i) => {
+              const canFix = admin || (ops && i === 0 && !match); // operador: só a última, sem outra em andamento
+              return (
+                <div key={r.id} className="card stack">
+                  <div>
+                    <strong>{r.a_won ? r.a : r.b}</strong> venceu {r.a_won ? r.b : r.a} por {Math.max(r.score_a, r.score_b)} a {Math.min(r.score_a, r.score_b)}
+                    {r.corrected && <small className="muted"> (placar corrigido)</small>}
+                  </div>
+                  {(canFix || admin) && (
+                    <div className="chips">
+                      {canFix && <button className="chip" onClick={() => setFixing(r)}>Corrigir placar</button>}
+                      {admin && <button className="chip" onClick={() => setDeleting(r)}>Excluir</button>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
+      )}
+      {cancelAsk && (
+        <Confirm title="Cancelar a partida em andamento?" text="A partida será apagada, sem placar nem estatística, e os dois times voltam para o início da fila." label="Cancelar partida" danger
+          onCancel={() => setCancelAsk(false)} onOk={() => { setCancelAsk(false); call(`/events/${eid}/court/match-cancel`, {}); }} />
+      )}
+      {fixing && (
+        <ScoreEditor m={fixing} onClose={() => setFixing(null)}
+          onSave={(a, b) => { const m = fixing; setFixing(null); call(`/matches/${m.id}/score`, { score_a: a, score_b: b }); }} />
+      )}
+      {deleting && (
+        <Confirm title="Excluir esta partida?" text={`${deleting.a} x ${deleting.b} (${deleting.score_a} a ${deleting.score_b}) deixa de contar no ranking e nos perfis. Não dá para desfazer. A fila não é alterada.`} label="Excluir partida" danger
+          onCancel={() => setDeleting(null)} onOk={() => { const m = deleting; setDeleting(null); call(`/matches/${m.id}/delete`, {}); }} />
       )}
       {moving && <MoveSheet p={moving} teams={queue} onMove={moveTo} onClose={closeMove} />}
     </main>

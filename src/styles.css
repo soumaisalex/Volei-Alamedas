@@ -220,3 +220,6 @@ details > p.muted { margin-bottom: .6rem; }
 .btn.icon .ico { width: 1.4rem; height: 1.4rem; }
 .credit { padding: 0 1rem 1rem; }
 h3.spaced { margin-top: 1.4rem; }
+
+.card.match .mid { display: grid; justify-items: center; }
+.card.match .mid small { font-size: .7rem; }

@@ -115,6 +115,17 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     return json({ ok: true });
   }
 
+  if (action === 'match-cancel') {
+    const m = await playing();
+    if (!m) return fail(409, 'Nenhuma partida em andamento.');
+    const order = [m.team_a_id, m.team_b_id, ...(await queue()).map((t) => t.id)];
+    await sql.transaction([
+      sql`delete from matches where id = ${m.id}`, // os jogadores da partida saem junto (cascade)
+      ...order.map((tid, k) => sql`update teams set queue_pos = ${k + 1} where id = ${tid}`),
+    ]);
+    return json({ ok: true });
+  }
+
   if (action === 'match-score') {
     const m = await playing();
     if (!m) return fail(409, 'Nenhuma partida em andamento.');

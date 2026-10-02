@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import ShareCard from './ShareCard.jsx';
+import Confirm from './Confirm.jsx';
+import { ScoreEditor } from './MatchActions.jsx';
 import { eventCard } from './cards.js';
 import { STATUS } from './shared.jsx';
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Quem jogou a partida, lado a lado.
-function Roster({ m, onClose }) {
+function Roster({ m, admin, onFix, onDelete, onClose }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -20,12 +22,19 @@ function Roster({ m, onClose }) {
           <span className="score-pill">{m.score_a} x {m.score_b}</span>
           <strong className={m.a_won ? '' : 'win'}>{m.b}</strong>
         </div>
+        {m.corrected && <p className="muted">Placar corrigido depois do jogo.</p>}
         {m.a_players.length || m.b_players.length ? (
           <div className="roster">
             <ul>{m.a_players.map((n, i) => <li key={i}>{n}</li>)}</ul>
             <ul className="right">{m.b_players.map((n, i) => <li key={i}>{n}</li>)}</ul>
           </div>
         ) : <p className="muted">Os jogadores desta partida não foram registrados.</p>}
+        {admin && (
+          <div className="chips">
+            <button className="chip" onClick={onFix}>Corrigir placar</button>
+            <button className="chip" onClick={onDelete}>Excluir partida</button>
+          </div>
+        )}
         <button className="btn ghost" onClick={onClose}>Fechar</button>
       </div>
     </div>
@@ -40,6 +49,8 @@ export default function EventDetail({ api, user, id, onBack }) {
   const [cancel, setCancel] = useState(false);
   const [reason, setReason] = useState('');
   const [roster, setRoster] = useState(null);
+  const [fix, setFix] = useState(null);
+  const [del, setDel] = useState(null);
   const load = useCallback(() => api(`/events/${id}/summary`).then(setS).catch((e) => setErr(e.message)), [api, id]);
   useEffect(() => { load(); }, [load]);
 
@@ -91,7 +102,7 @@ export default function EventDetail({ api, user, id, onBack }) {
                 {s.matches.map((m, i) => (
                   <button key={i} className="card match" aria-label={`Ver jogadores: ${m.a} ${m.score_a} x ${m.score_b} ${m.b}`} onClick={() => setRoster(m)}>
                     <span className={m.a_won ? 'win' : ''}>{m.a}</span>
-                    <strong>{m.score_a} x {m.score_b}</strong>
+                    <span className="mid"><strong>{m.score_a} x {m.score_b}</strong>{m.corrected && <small className="muted">corrigida</small>}</span>
                     <span className={m.a_won ? '' : 'win'}>{m.b}</span>
                   </button>
                 ))}
@@ -125,7 +136,23 @@ export default function EventDetail({ api, user, id, onBack }) {
           </div>
         ) : <button className="btn danger" onClick={() => setCancel(true)}>Cancelar evento</button>
       )}
-      {roster && <Roster m={roster} onClose={() => setRoster(null)} />}
+      {roster && <Roster m={roster} admin={user?.role === 'admin'} onClose={() => setRoster(null)}
+        onFix={() => { setFix(roster); setRoster(null); }} onDelete={() => { setDel(roster); setRoster(null); }} />}
+      {fix && (
+        <ScoreEditor m={fix} onClose={() => setFix(null)}
+          onSave={async (a, b) => {
+            const m = fix; setFix(null);
+            try { await api(`/matches/${m.id}/score`, { body: { score_a: a, score_b: b } }); await load(); } catch (e) { setErr(e.message); }
+          }} />
+      )}
+      {del && (
+        <Confirm title="Excluir esta partida?" text={`${del.a} x ${del.b} (${del.score_a} a ${del.score_b}) deixa de contar no ranking e nos perfis. Não dá para desfazer.`} label="Excluir partida" danger
+          onCancel={() => setDel(null)}
+          onOk={async () => {
+            const m = del; setDel(null);
+            try { await api(`/matches/${m.id}/delete`, { body: {} }); await load(); } catch (e) { setErr(e.message); }
+          }} />
+      )}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );

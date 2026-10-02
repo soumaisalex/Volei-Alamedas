@@ -23,7 +23,8 @@ export async function loadCourt(sql, eventId) {
     sql`select id, seq, team_a_id, team_b_id, score_a, score_b, live_scoring, points_target
         from matches where event_id = ${eventId} and status = 'in_progress' limit 1`,
     sql`
-      select m.seq, ta.name as a, tb.name as b, m.score_a, m.score_b, m.winner_team_id = m.team_a_id as a_won
+      select m.id, m.seq, ta.name as a, tb.name as b, m.score_a, m.score_b, m.winner_team_id = m.team_a_id as a_won,
+             (m.corrected_at is not null) as corrected
       from matches m join teams ta on ta.id = m.team_a_id join teams tb on tb.id = m.team_b_id
       where m.event_id = ${eventId} and m.status = 'finished' order by m.seq desc limit 5`,
   ]);
