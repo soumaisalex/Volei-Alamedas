@@ -31,8 +31,8 @@ function Roster({ m, admin, onFix, onDelete, onClose }) {
         ) : <p className="muted">Os jogadores desta partida não foram registrados.</p>}
         {admin && (
           <div className="chips">
-            <button className="chip" onClick={onFix}>Corrigir placar</button>
-            <button className="chip" onClick={onDelete}>Excluir partida</button>
+            <button className="chip danger" onClick={onFix}>Corrigir placar</button>
+            <button className="chip danger" onClick={onDelete}>Excluir partida</button>
           </div>
         )}
         <button className="btn ghost" onClick={onClose}>Fechar</button>

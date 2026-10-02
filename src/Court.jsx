@@ -234,7 +234,7 @@ export default function Court({ api, user }) {
                   <small className="muted grow">{!match && i < 2 ? 'joga a seguir' : ''}</small>
                   {ops && (
                     <div className="arrows">
-                      {!t.members.length && <button className="btn ghost small" onClick={() => run('team-remove', { team_id: t.id })}>Remover</button>}
+                      {!t.members.length && <button className="btn danger small" onClick={() => run('team-remove', { team_id: t.id })}>Remover</button>}
                       <button className="btn ghost" disabled={i === 0} aria-label="Subir na fila" onClick={() => run('move', { team_id: t.id, dir: -1 })}>↑</button>
                       <button className="btn ghost" disabled={i === queue.length - 1} aria-label="Descer na fila" onClick={() => run('move', { team_id: t.id, dir: 1 })}>↓</button>
                     </div>
@@ -272,8 +272,8 @@ export default function Court({ api, user }) {
                   </div>
                   {(canFix || admin) && (
                     <div className="chips">
-                      {canFix && <button className="chip" onClick={() => setFixing(r)}>Corrigir placar</button>}
-                      {admin && <button className="chip" onClick={() => setDeleting(r)}>Excluir</button>}
+                      {canFix && <button className="chip danger" onClick={() => setFixing(r)}>Corrigir placar</button>}
+                      {admin && <button className="chip danger" onClick={() => setDeleting(r)}>Excluir</button>}
                     </div>
                   )}
                 </div>

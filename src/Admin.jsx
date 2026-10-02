@@ -44,7 +44,7 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
         {p.active && p.role === 'operator' && (
           <>
             <p className="muted">Gerar um novo código apaga a senha atual e desconecta a pessoa. Use se ela esqueceu a senha ou ainda não conseguiu entrar.</p>
-            <button className="btn" onClick={() => onChange({ reset: true })}>Novo código de acesso</button>
+            <button className="btn danger" onClick={() => onChange({ reset: true })}>Novo código de acesso</button>
             <button className="btn danger" onClick={() => (sure ? onChange({ role: 'player' }, true) : setSure(true))}>
               {sure ? 'Toque de novo para confirmar' : 'Remover operador'}
             </button>

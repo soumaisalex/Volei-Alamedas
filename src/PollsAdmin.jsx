@@ -37,9 +37,9 @@ export default function PollsAdmin({ api, open, onChange }) {
           <div key={p.id} className="card stack">
             <strong>{p.emoji || '🗳️'} {p.title}</strong>
             <div className="chips">
-              <button className="chip" onClick={() => call('close', { poll_id: p.id }, () => 'Votação encerrada.')}>Fechar agora</button>
+              <button className="chip danger" onClick={() => call('close', { poll_id: p.id }, () => 'Votação encerrada.')}>Fechar agora</button>
               <button className="chip" onClick={() => call('extend', { poll_id: p.id, hours: 12 }, () => 'Prazo: mais 12 h.')}>Prazo +12 h</button>
-              <button className="chip" onClick={() => call('remove', { poll_id: p.id })}>Remover</button>
+              <button className="chip danger" onClick={() => call('remove', { poll_id: p.id })}>Remover</button>
             </div>
           </div>
         ))}

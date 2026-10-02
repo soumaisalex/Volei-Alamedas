@@ -225,3 +225,6 @@ h3.spaced { margin-top: 1.4rem; }
 .card.match .mid small { font-size: .7rem; }
 
 .phone { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Ações perigosas: vermelho cheio com texto branco */
+.btn.danger, .chip.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
