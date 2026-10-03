@@ -13,9 +13,42 @@ function left(iso) {
 }
 const day = (d) => d && new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
 
+// Explica cada categoria (as descrições vêm do banco, editáveis pelo admin).
+function PollHelp({ api, onClose }) {
+  const [cats, setCats] = useState(null);
+  useEffect(() => { api('/polls/categories').then((r) => setCats(r.filter((c) => c.active))).catch(() => setCats([])); }, [api]);
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="overlay" role="presentation" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="O que significa cada enquete" onClick={(e) => e.stopPropagation()}>
+        <h3>O que é cada enquete</h3>
+        <p className="muted">Quando o evento termina, abrem as votações por 24 horas. O voto é secreto e só quem fez check-in vota; ninguém vota em si mesmo. Em caso de empate, todos os empatados ganham o troféu, que aparece no perfil.</p>
+        {!cats && <p className="muted">Carregando…</p>}
+        <div className="stack">
+          {cats?.map((c) => (
+            <div key={c.id} className="card row">
+              <span className="emoji">{c.emoji}</span>
+              <span className="grow">
+                <strong>{c.name}</strong>{c.kind === 'team' && <small className="muted"> (vota-se em times)</small>}<br />
+                <span className="muted">{c.description || 'Sem descrição.'}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <button className="btn ghost" onClick={onClose}>Fechar</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Enquetes({ api, user }) {
   const [polls, setPolls] = useState(null);
   const [err, setErr] = useState('');
+  const [help, setHelp] = useState(false);
   const load = useCallback(() => api('/polls').then((r) => setPolls(r.polls)).catch((e) => setErr(e.message)), [api]);
   useEffect(() => { load(); }, [load]);
 
@@ -29,7 +62,7 @@ export default function Enquetes({ api, user }) {
 
   return (
     <main className="screen">
-      <h2>Enquetes</h2>
+      <h2>Enquetes <button className="help" aria-label="O que significa cada enquete" onClick={() => setHelp(true)}>(?)</button></h2>
       {err && <p className="err" role="alert">{err}</p>}
       {!polls && !err && <p className="muted">Carregando…</p>}
 
@@ -100,6 +133,7 @@ export default function Enquetes({ api, user }) {
       )}
 
       {user.role === 'admin' && <PollsAdmin api={api} open={open} onChange={load} />}
+      {help && <PollHelp api={api} onClose={() => setHelp(false)} />}
     </main>
   );
 }

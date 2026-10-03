@@ -235,3 +235,7 @@ h3.spaced { margin-top: 1.4rem; }
 .selwrap select:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; }
 .selwrap option { color: #000; background: #fff; }
 .selwrap::after { content: "▾"; position: absolute; right: .1rem; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
+
+/* (?) ao lado de "Enquetes" */
+.help { font: 800 1rem var(--body); color: var(--num); background: none; border: 0; padding: .3rem; cursor: pointer; text-decoration: underline; vertical-align: middle; }
+.help:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; border-radius: .4rem; }
