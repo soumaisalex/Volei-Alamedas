@@ -49,6 +49,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [pending, setPending] = useState([]);
   const askOk = (title, text, label, run, danger) => setAsk({ title, text, label, run, danger });
   const ops = user.role === 'admin' || user.role === 'operator';
+  const admin = user.role === 'admin';
   const cur = events ? pickCurrent(events) : null;
   const later = (events || []).filter((e) => OPEN.includes(e.status) && e !== cur).sort((a, b) => a.event_date.localeCompare(b.event_date));
   const past = (events || []).filter((e) => !OPEN.includes(e.status));
@@ -60,8 +61,8 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
     const liveNow = c && c.status === 'in_progress';
     setHere(liveNow ? await api(`/events/${c.id}/checkins`) : []);
     setBlocked(liveNow && ops ? await api(`/events/${c.id}/blocks`) : []);
-    setPending(liveNow && ops ? await api(`/events/${c.id}/pending`) : []);
-  }, [api, ops]);
+    setPending(liveNow && admin ? await api(`/events/${c.id}/pending`) : []);
+  }, [api, ops, admin]);
   useEffect(() => { load().catch((e) => setErr(e.message)); api('/players').then(setPlayers).catch(() => {}); }, [load, api]);
 
   const act = async (action, body) => {
@@ -162,7 +163,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
         </section>
       )}
 
-      {live && ops && !!pending.length && (
+      {live && admin && !!pending.length && (
         <section>
           <h3>Confirmados que ainda não chegaram</h3>
           <div className="pick-grid">

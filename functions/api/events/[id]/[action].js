@@ -52,7 +52,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     return json(await sql`select p.id, p.name from event_rsvps r join players p on p.id = r.player_id where r.event_id = ${id} order by p.name`);
   }
   if (request.method === 'GET' && action === 'pending') {
-    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores veem os confirmados que faltam chegar.');
+    if (!can(user, 'admin')) return fail(403, 'Só o admin vê os confirmados que faltam chegar.');
     if (ev.status !== 'in_progress') return json([]);
     return json(await sql`
       select p.id, p.name, p.photo_url from event_rsvps r join players p on p.id = r.player_id
@@ -103,7 +103,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
 
   // Marca de uma vez todos os confirmados que ainda não fizeram check-in (ação consciente do operador).
   if (action === 'checkin-all') {
-    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores marcam presenças em grupo.');
+    if (!can(user, 'admin')) return fail(403, 'Só o admin marca presenças em grupo.');
     if (ev.status !== 'in_progress') return fail(409, 'O evento não está em andamento.');
     const added = await sql`
       insert into checkins (event_id, player_id, checked_in_by)
