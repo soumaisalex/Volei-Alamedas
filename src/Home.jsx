@@ -4,6 +4,7 @@ import { EventCards } from './Events.jsx';
 import Confirm from './Confirm.jsx';
 import Person from './Person.jsx';
 import NewPlayer from './NewPlayer.jsx';
+import { RsvpAdmin } from './Rsvp.jsx';
 import { Icon } from './icons.jsx';
 import { InfoCards } from './InfoCards.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
@@ -45,6 +46,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [sheet, setSheet] = useState(null);
   const [newPlayer, setNewPlayer] = useState(false);
   const [blocked, setBlocked] = useState([]);
+  const [pending, setPending] = useState([]);
   const askOk = (title, text, label, run, danger) => setAsk({ title, text, label, run, danger });
   const ops = user.role === 'admin' || user.role === 'operator';
   const cur = events ? pickCurrent(events) : null;
@@ -58,6 +60,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
     const liveNow = c && c.status === 'in_progress';
     setHere(liveNow ? await api(`/events/${c.id}/checkins`) : []);
     setBlocked(liveNow && ops ? await api(`/events/${c.id}/blocks`) : []);
+    setPending(liveNow && ops ? await api(`/events/${c.id}/pending`) : []);
   }, [api, ops]);
   useEffect(() => { load().catch((e) => setErr(e.message)); api('/players').then(setPlayers).catch(() => {}); }, [load, api]);
 
@@ -108,7 +111,13 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
                 : <button className="btn primary" onClick={() => askOk('Fazer check-in?', 'Você será marcado como presente neste evento.', 'Fazer check-in', () => act('checkin'))}>Estou aqui</button>}
               <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
             </>
-          ) : <p className="muted">O check-in abre quando um operador iniciar o evento.</p>}
+          ) : (
+            <>
+              <button className={`btn ${cur.going ? 'ghost' : 'primary'}`} onClick={() => act('rsvp', { going: !cur.going })}>{cur.going ? 'Não vou mais' : 'Eu vou'}</button>
+              <p className="muted">O check-in abre quando um operador iniciar o evento.</p>
+              {user.role === 'admin' && <RsvpAdmin api={api} eventId={cur.id} count={cur.rsvp_count} />}
+            </>
+          )}
           {ops && !live && <button className="btn" onClick={() => askOk('Iniciar o evento?', 'O check-in será aberto para todos. O tamanho dos times é livre: monte as linhas como quiser na tela da Quadra.', 'Iniciar evento', () => act('start'))}>Iniciar evento e abrir check-in</button>}
           {ops && live && <button className="btn" onClick={() => askOk('Encerrar o evento?', 'O evento termina e as votações das enquetes abrem por 24 horas. Não será possível continuar as partidas.', 'Encerrar evento', () => act('finish'), true)}>Encerrar evento</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
@@ -150,6 +159,22 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
               </div>
             </>
           )}
+        </section>
+      )}
+
+      {live && ops && !!pending.length && (
+        <section>
+          <h3>Confirmados que ainda não chegaram</h3>
+          <div className="pick-grid">
+            {pending.map((p) => (
+              <Person key={p.id} name={p.name} photo_url={p.photo_url}
+                onClick={() => askOk(`Fazer check-in de ${p.name}?`, 'A pessoa confirmou presença antes do evento.', 'Fazer check-in', () => act('checkin', { player_id: p.id }))} />
+            ))}
+          </div>
+          <button className="btn spaced-top"
+            onClick={() => askOk('Marcar todos como presentes?', `Todas as ${pending.length} pessoas desta lista serão marcadas como presentes. Confirme só se já chegaram.`, 'Marcar todos', () => act('checkin-all'))}>
+            Marcar todos como presentes
+          </button>
         </section>
       )}
 

@@ -239,3 +239,5 @@ h3.spaced { margin-top: 1.4rem; }
 /* (?) ao lado de "Enquetes" */
 .help { font: 800 1rem var(--body); color: var(--num); background: none; border: 0; padding: .3rem; cursor: pointer; text-decoration: underline; vertical-align: middle; }
 .help:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; border-radius: .4rem; }
+
+.spaced-top { margin-top: .8rem; }

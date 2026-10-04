@@ -21,7 +21,9 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   if (request.method === 'GET' && action === 'summary') {
     const [info] = await sql`
       select to_char(event_date, 'YYYY-MM-DD') as event_date, status, title, cancel_reason,
-             (select count(*)::int from checkins where event_id = ${id}) as players
+             (select count(*)::int from checkins where event_id = ${id}) as players,
+             exists (select 1 from event_rsvps where event_id = ${id} and player_id = ${user?.id ?? null}) as going,
+             (case when ${can(user, 'admin')} then (select count(*)::int from event_rsvps where event_id = ${id}) end) as rsvp_count
       from events where id = ${id}`;
     const matches = await sql`
       select m.id, ta.name as a, tb.name as b, m.score_a, m.score_b, (m.winner_team_id = m.team_a_id) as a_won,
@@ -44,6 +46,20 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       from awards a join poll_categories c on c.id = a.category_id join players p on p.id = a.player_id
       where a.event_id = ${id} group by c.id order by min(c.sort_order)`;
     return json({ ...info, matches, champion: champion ?? null, awards });
+  }
+  if (request.method === 'GET' && action === 'rsvps') {
+    if (!can(user, 'admin')) return fail(403, 'Só o admin vê quem confirmou presença.');
+    return json(await sql`select p.id, p.name from event_rsvps r join players p on p.id = r.player_id where r.event_id = ${id} order by p.name`);
+  }
+  if (request.method === 'GET' && action === 'pending') {
+    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores veem os confirmados que faltam chegar.');
+    if (ev.status !== 'in_progress') return json([]);
+    return json(await sql`
+      select p.id, p.name, p.photo_url from event_rsvps r join players p on p.id = r.player_id
+      where r.event_id = ${id} and p.active
+        and not exists (select 1 from checkins c where c.event_id = r.event_id and c.player_id = r.player_id)
+        and not exists (select 1 from checkin_blocks b where b.event_id = r.event_id and b.player_id = r.player_id)
+      order by p.name`);
   }
   if (request.method === 'GET' && action === 'blocks') {
     if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores veem os bloqueios.');
@@ -76,6 +92,27 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       await dissolveTeams(sql, id);
     }
     return json({ ok: true });
+  }
+
+  if (action === 'rsvp') {
+    if (!['scheduled', 'checkin_open'].includes(ev.status)) return fail(409, 'As confirmações fecham quando o evento começa.');
+    if (body.going === false) await sql`delete from event_rsvps where event_id = ${id} and player_id = ${user.id}`;
+    else await sql`insert into event_rsvps (event_id, player_id) values (${id}, ${user.id}) on conflict do nothing`;
+    return json({ ok: true });
+  }
+
+  // Marca de uma vez todos os confirmados que ainda não fizeram check-in (ação consciente do operador).
+  if (action === 'checkin-all') {
+    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores marcam presenças em grupo.');
+    if (ev.status !== 'in_progress') return fail(409, 'O evento não está em andamento.');
+    const added = await sql`
+      insert into checkins (event_id, player_id, checked_in_by)
+      select r.event_id, r.player_id, ${user.id}::uuid from event_rsvps r join players p on p.id = r.player_id
+      where r.event_id = ${id} and p.active
+        and not exists (select 1 from checkins c where c.event_id = r.event_id and c.player_id = r.player_id)
+        and not exists (select 1 from checkin_blocks b where b.event_id = r.event_id and b.player_id = r.player_id)
+      returning player_id`;
+    return json({ added: added.length });
   }
 
   if (action === 'block' || action === 'unblock') {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import ShareCard from './ShareCard.jsx';
 import Confirm from './Confirm.jsx';
+import { RsvpAdmin } from './Rsvp.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
 import { eventCard } from './cards.js';
 import { STATUS } from './shared.jsx';
@@ -60,6 +61,12 @@ export default function EventDetail({ api, user, id, onBack }) {
     catch (e) { setErr(e.message); }
   };
 
+  const toggleGoing = async () => {
+    setErr('');
+    try { await api(`/events/${id}/rsvp`, { body: { going: !s.going } }); await load(); }
+    catch (e) { setErr(e.message); }
+  };
+
   if (!s) return (
     <main className="screen">
       <button className="btn ghost small" onClick={onBack}>Voltar</button>
@@ -81,6 +88,10 @@ export default function EventDetail({ api, user, id, onBack }) {
       {err && <p className="err" role="alert">{err}</p>}
       {s.status === 'cancelled' && <div className="card"><strong>Evento cancelado</strong><p className="muted">Motivo: {s.cancel_reason}</p></div>}
 
+      {user && ['scheduled', 'checkin_open'].includes(s.status) && (
+        <button className={`btn ${s.going ? 'ghost' : 'primary'}`} onClick={toggleGoing}>{s.going ? 'Não vou mais' : 'Eu vou'}</button>
+      )}
+      {user?.role === 'admin' && ['scheduled', 'checkin_open'].includes(s.status) && <RsvpAdmin api={api} eventId={id} count={s.rsvp_count} />}
       {s.status === 'finished' && <button className="btn primary" onClick={() => setCard({ name: 'resumo do evento', make: () => eventCard(s) })}>Compartilhar resumo</button>}
 
       {s.status !== 'cancelled' && (
