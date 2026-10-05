@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import ShareCard from './ShareCard.jsx';
+import { Icon } from './icons.jsx';
 import Confirm from './Confirm.jsx';
 import { RsvpAdmin } from './Rsvp.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
@@ -30,13 +31,15 @@ function Roster({ m, admin, onFix, onDelete, onClose }) {
             <ul className="right">{m.b_players.map((n, i) => <li key={i}>{n}</li>)}</ul>
           </div>
         ) : <p className="muted">Os jogadores desta partida não foram registrados.</p>}
-        {admin && (
-          <div className="chips">
-            <button className="chip danger" onClick={onFix}>Corrigir placar</button>
-            <button className="chip danger" onClick={onDelete}>Excluir partida</button>
-          </div>
-        )}
-        <button className="btn ghost" onClick={onClose}>Fechar</button>
+        <div className="sheet-actions">
+          <button className="btn ghost" onClick={onClose}>Fechar</button>
+          {admin && (
+            <>
+              <button className="btn danger icon" aria-label="Corrigir placar" title="Corrigir placar" onClick={onFix}><Icon name="edit" /></button>
+              <button className="btn danger icon" aria-label="Excluir partida" title="Excluir partida" onClick={onDelete}><Icon name="trash" /></button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
