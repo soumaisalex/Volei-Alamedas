@@ -77,6 +77,11 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
       setNewEv({ date: '', title: '' }); setOk('Evento criado.'); await load();
     } catch (e) { setErr(e.message); }
   };
+  const rsvpEvent = async (e) => {
+    setErr(''); setOk('');
+    try { await api(`/events/${e.id}/rsvp`, { body: { going: !e.going } }); await load(); }
+    catch (x) { setErr(x.message); }
+  };
   const logout = async () => { await api('/auth/logout', { method: 'POST', body: {} }); onLogout(); };
 
   const present = here.filter((p) => !p.left_at);
@@ -179,7 +184,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
         </section>
       )}
 
-      <EventCards title="Próximos eventos" events={later} onOpen={onOpenEvent} />
+      <EventCards title="Próximos eventos" events={later} onOpen={onOpenEvent} onRsvp={rsvpEvent} />
 
       {user.role === 'admin' && (
         <details className="card">

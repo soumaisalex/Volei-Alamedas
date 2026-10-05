@@ -40,7 +40,7 @@ function Avatar({ p }) {
   return p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.name[0]}</span>;
 }
 
-function Auth({ onDone, onBack }) {
+function Auth({ onDone, onBack, note }) {
   const [mode, setMode] = useState('entrar');
   const [players, setPlayers] = useState([]);
   const [q, setQ] = useState('');
@@ -58,6 +58,7 @@ function Auth({ onDone, onBack }) {
     <main className="screen">
       <div className="theme-row">{onBack && <button className="btn ghost small" onClick={onBack}>Voltar</button>}<ThemeButton /></div>
       <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
+      {note && <p className="muted">{note}</p>}
       <div className="tabs">
         <button className={mode === 'entrar' ? 'on' : ''} onClick={() => setMode('entrar')}>Já tenho cadastro</button>
         <button className={mode === 'cadastrar' ? 'on' : ''} onClick={() => setMode('cadastrar')}>Primeira vez</button>
@@ -95,11 +96,27 @@ export default function App() {
   const [viewId, setViewId] = useState(null);
   const [eventId, setEventId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [pendingRsvp, setPendingRsvp] = useState(null); // "Eu vou" tocado antes de entrar
   const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
   useEffect(() => { refresh(); }, [refresh]);
 
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
-  if (!user && showLogin) return <><Auth onDone={() => { setShowLogin(false); refresh(); }} onBack={() => setShowLogin(false)} /><Footer /></>;
+  if (!user && showLogin) {
+    const done = async () => {
+      if (pendingRsvp) {
+        try { await api(`/events/${pendingRsvp}/rsvp`, { body: { going: true } }); } catch { /* entra mesmo sem confirmar */ }
+        setPendingRsvp(null);
+      }
+      setShowLogin(false);
+      refresh();
+    };
+    return (
+      <>
+        <Auth note={pendingRsvp ? 'Entre para confirmar que você vai ao evento.' : ''} onDone={done} onBack={() => { setPendingRsvp(null); setShowLogin(false); }} />
+        <Footer />
+      </>
+    );
+  }
   if (user?.needs_password) {
     return (
       <main className="screen">
@@ -117,7 +134,7 @@ export default function App() {
   const tabs = user
     ? [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['enquetes', 'Enquetes'], ['perfil', 'Perfil']]
     : [['inicio', 'Eventos'], ['ranking', 'Ranking'], ['entrar', 'Entrar']];
-  const go = (k) => { setViewId(null); setEventId(null); if (k === 'entrar') setShowLogin(true); else setTab(k); };
+  const go = (k) => { setViewId(null); setEventId(null); if (k === 'entrar') { setPendingRsvp(null); setShowLogin(true); } else setTab(k); };
   const openPlayer = (id) => { setEventId(null); setViewId(id); setTab('perfil'); };
   const logout = () => { setUser(null); setTab('inicio'); };
 
@@ -129,7 +146,7 @@ export default function App() {
   else if (user && tab === 'enquetes') page = <Enquetes api={api} user={user} />;
   else page = user
     ? <Home api={api} user={user} onLogout={logout} onOpenEvent={setEventId} />
-    : <PublicHome api={api} onOpenEvent={setEventId} onLogin={() => setShowLogin(true)} />;
+    : <PublicHome api={api} onOpenEvent={setEventId} onLogin={() => { setPendingRsvp(null); setShowLogin(true); }} onRsvp={(e) => { setPendingRsvp(e.id); setShowLogin(true); }} />;
 
   return (
     <>
