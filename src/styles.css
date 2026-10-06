@@ -251,3 +251,22 @@ h3.spaced { margin-top: 1.4rem; }
 .sheet-actions { display: flex; align-items: center; gap: .6rem; }
 .sheet-actions > .btn:first-child { flex: 1 1 auto; width: auto; }
 .btn.icon:not(.small) { flex: none; width: 3.8rem; padding: 0; display: grid; place-items: center; }
+
+/* ───── QR de check-in ───── */
+a.btn { display: grid; place-items: center; text-decoration: none; }
+.qr-box { background: #fff; border: 2px solid var(--line); border-radius: 1rem; padding: 1rem; display: grid; place-items: center; margin-bottom: .6rem; }
+.qr-box img { width: min(100%, 18rem); height: auto; image-rendering: pixelated; }
+.check { display: grid; place-items: center; width: 5rem; height: 5rem; margin: 0 auto; border-radius: 50%; background: var(--leaf); color: #06170c; font-size: 2.8rem; font-weight: 800; }
+.card.hero.center { justify-items: center; }
+.poster { display: none; }
+@page { margin: 12mm; }
+@media print {
+  body * { visibility: hidden; }
+  .poster, .poster * { visibility: visible; }
+  .poster { display: grid; justify-items: center; gap: 6mm; position: fixed; inset: 0; background: #fff; color: #000; text-align: center; padding: 8mm; }
+  .poster-logo { width: 55mm; }
+  .poster h1 { font-size: 40pt; color: #14301c; }
+  .poster-qr { width: 120mm; height: 120mm; image-rendering: pixelated; }
+  .poster ol { text-align: left; font-size: 16pt; line-height: 1.5; margin: 0; padding-left: 8mm; }
+  .poster p { font-size: 14pt; margin: 0; }
+}

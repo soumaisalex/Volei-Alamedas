@@ -4,6 +4,7 @@ import Ranking from './Ranking.jsx';
 import Home from './Home.jsx';
 import Person from './Person.jsx';
 import Footer from './Footer.jsx';
+import QrCheckin from './QrCheckin.jsx';
 import { Icon } from './icons.jsx';
 import EventDetail from './EventDetail.jsx';
 import { PublicHome } from './Events.jsx';
@@ -96,11 +97,21 @@ export default function App() {
   const [viewId, setViewId] = useState(null);
   const [eventId, setEventId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [qr, setQr] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/checkin'); // aberto pelo QR da entrada
   const [pendingRsvp, setPendingRsvp] = useState(null); // "Eu vou" tocado antes de entrar
   const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
   useEffect(() => { refresh(); }, [refresh]);
+  const leaveQr = () => { window.history.replaceState(null, '', '/'); setQr(false); };
 
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
+  if (qr && !user) {
+    return (
+      <>
+        <Auth note="Entre com o seu nome para fazer o check-in." onDone={refresh} onBack={leaveQr} />
+        <Footer />
+      </>
+    );
+  }
   if (!user && showLogin) {
     const done = async () => {
       if (pendingRsvp) {
@@ -129,6 +140,8 @@ export default function App() {
       </main>
     );
   }
+
+  if (qr) return <><QrCheckin api={api} onDone={leaveQr} /><Footer /></>;
 
   // Visitantes (sem login) veem eventos, ranking e perfis; o resto exige entrar.
   const tabs = user
