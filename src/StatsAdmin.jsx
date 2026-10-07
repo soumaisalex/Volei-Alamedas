@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const PERIODS = [['30d', '30 dias'], ['90d', '3 meses'], ['ano', 'Este ano'], ['geral', 'Geral']];
+const PERIODS = [['ano', 'Este ano'], ['geral', 'Geral'], ['custom', 'Personalizado']];
+const today = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10); // horário de Aracaju
 const dm = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 // Gráfico de barras em SVG (sem biblioteca), com rolagem lateral quando há muitos eventos.
@@ -39,15 +40,18 @@ const Rows = ({ items, empty, render }) => (
 
 export default function StatsAdmin({ api }) {
   const [opened, setOpened] = useState(false);
-  const [period, setPeriod] = useState('90d');
+  const [period, setPeriod] = useState('ano');
+  const [range, setRange] = useState({ from: `${today().slice(0, 4)}-01-01`, to: today() });
+  const customOk = !!range.from && !!range.to && range.from <= range.to;
   const [d, setD] = useState(null);
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    if (!opened) return;
+    if (!opened || (period === 'custom' && !customOk)) return;
     setErr('');
-    api(`/stats?period=${period}`).then(setD).catch((e) => setErr(e.message));
-  }, [api, opened, period]);
+    const q = period === 'custom' ? `&from=${range.from}&to=${range.to}` : '';
+    api(`/stats?period=${period}${q}`).then(setD).catch((e) => setErr(e.message));
+  }, [api, opened, period, range.from, range.to, customOk]);
 
   const s = d?.summary;
   const tiles = s && [
@@ -63,6 +67,13 @@ export default function StatsAdmin({ api }) {
       <div className="chips">
         {PERIODS.map(([k, label]) => <button key={k} className={`chip${period === k ? ' on' : ''}`} onClick={() => setPeriod(k)}>{label}</button>)}
       </div>
+      {period === 'custom' && (
+        <div className="range">
+          <label>De<input type="date" max={range.to || today()} value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
+          <label>Até<input type="date" min={range.from} max={today()} value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
+          {!customOk && <p className="muted">Escolha as duas datas, com a inicial antes da final.</p>}
+        </div>
+      )}
       {err && <p className="err" role="alert">{err}</p>}
       {!d && !err && opened && <p className="muted">Carregando…</p>}
 

@@ -94,8 +94,8 @@ export default function Admin({ api }) {
   };
 
   return (
-    <section>
-      <h3>Operadores</h3>
+    <details className="card">
+      <summary><span className="grow">Operadores</span></summary>
       <p className="muted">Toque numa pessoa para ver as opções. Operadores entram com senha própria.</p>
       {err && !picked && <p className="err" role="alert">{err}</p>}
       <div className="pick-grid">
@@ -118,6 +118,6 @@ export default function Admin({ api }) {
         </>
       )}
       {picked && <PersonSheet key={picked.id} p={picked} issued={issued} err={err} onChange={change} onClose={() => setSel(null)} />}
-    </section>
+    </details>
   );
 }

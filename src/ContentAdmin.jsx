@@ -74,8 +74,8 @@ export default function ContentAdmin({ api }) {
   const item = ITEMS.find(([k]) => k === edit);
 
   return (
-    <section>
-      <h3>Conteúdo da tela inicial</h3>
+    <details className="card">
+      <summary><span className="grow">Conteúdo da tela inicial</span></summary>
       <p className="muted">Toque para editar os textos de Informações, Links e Regras.</p>
       <div className="info-row">
         {ITEMS.map(([k, label, icon]) => (
@@ -83,6 +83,6 @@ export default function ContentAdmin({ api }) {
         ))}
       </div>
       {item && <Editor key={edit} api={api} item={item} initial={data[edit] || ''} onSaved={(k, v) => setData({ ...data, [k]: v })} onClose={() => setEdit(null)} />}
-    </section>
+    </details>
   );
 }
