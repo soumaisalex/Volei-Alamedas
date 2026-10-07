@@ -270,3 +270,13 @@ a.btn { display: grid; place-items: center; text-decoration: none; }
   .poster ol { text-align: left; font-size: 16pt; line-height: 1.5; margin: 0; padding-left: 8mm; }
   .poster p { font-size: 14pt; margin: 0; }
 }
+
+/* ───── Estatísticas do grupo (admin) ───── */
+.chart { overflow-x: auto; margin-bottom: .8rem; }
+.chart svg { display: block; }
+.bar { fill: var(--leaf); }
+.bar.alt { fill: var(--num); }
+.bar-val { fill: var(--ink); font: 800 11px var(--body); }
+.bar-lbl { fill: var(--muted); font: 700 10px var(--body); }
+.axis { stroke: var(--line); stroke-width: 2; }
+details > .tiles, details > .chips { margin-bottom: .8rem; }
