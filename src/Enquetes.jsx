@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import PollsAdmin from './PollsAdmin.jsx';
 import Person from './Person.jsx';
+import { fmtDate } from './shared.jsx';
 
 const Face = ({ p }) => (p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.label[0]}</span>);
 
@@ -59,6 +60,14 @@ export default function Enquetes({ api, user }) {
   };
   const open = polls?.filter((p) => p.status === 'open') ?? [];
   const closed = polls?.filter((p) => p.status === 'closed') ?? [];
+  // Resultados agrupados por evento (a lista já vem do mais recente para o mais antigo)
+  const groups = [];
+  for (const p of closed) {
+    const key = p.event_date || 'avulsa';
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.polls.push(p);
+    else groups.push({ key, date: p.event_date, polls: [p] });
+  }
 
   return (
     <main className="screen">
@@ -106,24 +115,33 @@ export default function Enquetes({ api, user }) {
         </section>
       )}
 
-      {!!closed.length && (
+      {!!groups.length && (
         <section>
           <h3>Resultados</h3>
           <div className="stack">
-            {closed.map((p) => (
-              <details key={p.id} className="card">
+            {groups.map((g, gi) => (
+              <details key={g.key} className="card" open={gi === 0}>
                 <summary>
-                  <span className="emoji">{p.emoji || '🗳️'}</span>
-                  <span className="grow">{p.title}</span>
-                  <small className="muted">{day(p.event_date)}</small>
+                  <span className="grow"><strong className="date">{g.date ? fmtDate(g.date) : 'Enquetes avulsas'}</strong></span>
+                  <small className="muted">{g.polls.length} {g.polls.length === 1 ? 'resultado' : 'resultados'}</small>
                 </summary>
-                {!p.results.length && <p className="muted">Ninguém votou.</p>}
                 <div className="stack">
-                  {p.results.map((r, i) => (
-                    <div key={i} className={`row res${r.winner ? ' win' : ''}`}>
-                      <Face p={r} /><span className="grow">{r.label}</span>
-                      <strong>{r.winner ? '🏆 ' : ''}{r.n} {r.n === 1 ? 'voto' : 'votos'}</strong>
-                    </div>
+                  {g.polls.map((p) => (
+                    <details key={p.id} className="card sub">
+                      <summary>
+                        <span className="emoji">{p.emoji || '🗳️'}</span>
+                        <span className="grow">{p.title}</span>
+                      </summary>
+                      {!p.results.length && <p className="muted">Ninguém votou.</p>}
+                      <div className="stack">
+                        {p.results.map((r, i) => (
+                          <div key={i} className={`row res${r.winner ? ' win' : ''}`}>
+                            <Face p={r} /><span className="grow">{r.label}</span>
+                            <strong>{r.winner ? '🏆 ' : ''}{r.n} {r.n === 1 ? 'voto' : 'votos'}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   ))}
                 </div>
               </details>

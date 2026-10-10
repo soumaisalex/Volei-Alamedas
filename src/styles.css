@@ -285,3 +285,5 @@ details > .tiles, details > .chips { margin-bottom: .8rem; }
 .range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-bottom: .8rem; }
 .range label { display: grid; gap: .25rem; font-weight: 800; font-size: .9rem; }
 .range > p { grid-column: 1 / -1; }
+
+.card.sub { background: var(--mist); }
