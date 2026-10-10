@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import PollsAdmin from './PollsAdmin.jsx';
 import Person from './Person.jsx';
 import { fmtDate } from './shared.jsx';
+import ShareCard from './ShareCard.jsx';
+import { pollsCard } from './cards.js';
 
 const Face = ({ p }) => (p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.label[0]}</span>);
 
@@ -50,6 +52,7 @@ export default function Enquetes({ api, user }) {
   const [polls, setPolls] = useState(null);
   const [err, setErr] = useState('');
   const [help, setHelp] = useState(false);
+  const [card, setCard] = useState(null);
   const load = useCallback(() => api('/polls').then((r) => setPolls(r.polls)).catch((e) => setErr(e.message)), [api]);
   useEffect(() => { load(); }, [load]);
 
@@ -60,6 +63,10 @@ export default function Enquetes({ api, user }) {
   };
   const open = polls?.filter((p) => p.status === 'open') ?? [];
   const closed = polls?.filter((p) => p.status === 'closed') ?? [];
+  const winnersOf = (g) => g.polls
+    .map((p) => ({ emoji: p.emoji, title: p.title, winners: p.results.filter((r) => r.winner) }))
+    .filter((it) => it.winners.length);
+  const shareResults = (g) => setCard({ name: 'resultados das enquetes', make: () => pollsCard({ date: g.date, items: winnersOf(g) }) });
   // Resultados agrupados por evento (a lista já vem do mais recente para o mais antigo)
   const groups = [];
   for (const p of closed) {
@@ -144,6 +151,7 @@ export default function Enquetes({ api, user }) {
                     </details>
                   ))}
                 </div>
+                {g.date && winnersOf(g).length > 0 && <button className="btn primary" onClick={() => shareResults(g)}>Compartilhar resultados</button>}
               </details>
             ))}
           </div>
@@ -151,6 +159,7 @@ export default function Enquetes({ api, user }) {
       )}
 
       {user.role === 'admin' && <PollsAdmin api={api} open={open} onChange={load} />}
+      {card && <ShareCard card={card} onClose={() => setCard(null)} />}
       {help && <PollHelp api={api} onClose={() => setHelp(false)} />}
     </main>
   );

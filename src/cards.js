@@ -68,7 +68,7 @@ async function base(subtitle) {
   return { canvas, ctx };
 }
 
-async function avatar(ctx, p, cx, cy, r) {
+async function avatar(ctx, p, cx, cy, r, ring = 12) {
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
   const im = p.photo_url ? await loadImg(p.photo_url) : null;
@@ -80,7 +80,7 @@ async function avatar(ctx, p, cx, cy, r) {
     txt(ctx, p.name[0], cx, cy, { size: r, family: DISPLAY, color: '#fff', base: 'middle', maxW: r * 2 });
   }
   ctx.restore();
-  ctx.lineWidth = 12; ctx.strokeStyle = C.leaf;
+  ctx.lineWidth = ring; ctx.strokeStyle = C.leaf;
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
 }
 
@@ -163,6 +163,32 @@ export async function eventCard(s) {
   if (aw.length) {
     txt(ctx, 'Premiações', 540, y + 30, { size: 28, weight: '800', color: C.muted });
     aw.forEach((a, i) => txt(ctx, `${a.emoji || '🏆'} ${a.category}: ${a.winners.join(', ')}`, 540, y + 80 + i * 46, { size: 30, weight: '800', color: C.deep }));
+  }
+  return finish(canvas, ctx);
+}
+
+// Resultados das enquetes de um evento: foto, nome e troféu de cada categoria no mesmo card.
+// items: [{ emoji, title, winners: [{ label, photo_url }] }]
+export async function pollsCard({ date, items }) {
+  const { canvas, ctx } = await base('Resultados das enquetes');
+  const title = day(date, { weekday: 'long', day: '2-digit', month: 'long' });
+  txt(ctx, title.charAt(0).toUpperCase() + title.slice(1), 540, 520, { size: 58, family: DISPLAY, color: C.deep });
+
+  const shown = items.slice(0, 10);
+  const top = 575, rh = Math.min(150, Math.floor((1690 - top) / Math.max(1, shown.length)));
+  const r = Math.min(44, Math.floor((rh - 24) / 2));
+  for (let i = 0; i < shown.length; i++) {
+    const it = shown[i];
+    const y = top + i * rh, cy = y + rh / 2;
+    ctx.fillStyle = i % 2 ? '#fff' : C.soft; rr(ctx, 90, y + 4, 900, rh - 8, 24); ctx.fill();
+    const ws = it.winners.slice(0, 2); // empate: mostra até 2 fotos
+    for (let k = 0; k < ws.length; k++) {
+      await avatar(ctx, { name: ws[k].label, photo_url: ws[k].photo_url }, 125 + r + k * (2 * r + 10), cy, r, 6);
+    }
+    const tx = 125 + ws.length * (2 * r + 10) + 14, maxW = 895 - tx;
+    txt(ctx, `${it.emoji || '🏆'} ${it.title}`, tx, cy - 8, { size: 24, weight: '800', color: C.muted, align: 'left', maxW });
+    txt(ctx, ws.map((w) => w.label).join(' e ') + (it.winners.length > 2 ? ' e mais' : ''), tx, cy + 32, { size: 38, family: DISPLAY, color: C.deep, align: 'left', maxW });
+    txt(ctx, '🏆', 958, cy, { size: 44, align: 'right', base: 'middle', maxW: 60 });
   }
   return finish(canvas, ctx);
 }
