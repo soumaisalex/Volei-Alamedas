@@ -7,6 +7,7 @@ import NewPlayer from './NewPlayer.jsx';
 import { RsvpAdmin } from './Rsvp.jsx';
 import { Icon } from './icons.jsx';
 import { InfoCards } from './InfoCards.jsx';
+import { DonationCard } from './Donation.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 
 // Ações sobre uma pessoa que está na quadra.
@@ -199,6 +200,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
 
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
       <InfoCards api={api} />
+      <DonationCard api={api} user={user} />
       {newPlayer && (
         <NewPlayer api={api} live={live} onClose={() => setNewPlayer(false)}
           onCreated={() => api('/players').then(setPlayers).catch(() => {})}

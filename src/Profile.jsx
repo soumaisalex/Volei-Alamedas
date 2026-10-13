@@ -4,6 +4,7 @@ import ContentAdmin from './ContentAdmin.jsx';
 import { ChangePassword } from './Setup.jsx';
 import QrAdmin from './QrAdmin.jsx';
 import StatsAdmin from './StatsAdmin.jsx';
+import DonationAdmin from './DonationAdmin.jsx';
 import ShareCard from './ShareCard.jsx';
 import { playerCard, trophyCard } from './cards.js';
 
@@ -104,7 +105,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
 
       {mine && user.role !== 'player' && <ChangePassword api={api} />}
       {mine && user.role !== 'player' && <QrAdmin />}
-      {mine && user.role === 'admin' && <><Admin api={api} /><ContentAdmin api={api} /><StatsAdmin api={api} /></>}
+      {mine && user.role === 'admin' && <><Admin api={api} /><ContentAdmin api={api} /><DonationAdmin api={api} /><StatsAdmin api={api} /></>}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import ThemeButton from './ThemeButton.jsx';
 import { InfoCards } from './InfoCards.jsx';
+import { DonationCard } from './Donation.jsx';
 import { OPEN, STATUS, fmtDate } from './shared.jsx';
 
 // Lista de eventos; tocar abre o detalhe. Com onRsvp, os eventos agendados ganham o botão
@@ -55,6 +56,7 @@ export function PublicHome({ api, onOpenEvent, onLogin, onRsvp }) {
       <EventCards title="Próximos eventos" events={open} onOpen={onOpenEvent} onRsvp={onRsvp} />
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
       <InfoCards api={api} />
+      <DonationCard api={api} user={null} />
     </main>
   );
 }

@@ -1,0 +1,11 @@
+/* Doações: card do saldo, janelas e bloco do admin */
+.money { font: 400 1.6rem var(--display); color: var(--num); display: block; }
+.event-main.static { cursor: default; }
+.scroll { display: grid; gap: .5rem; max-height: 55vh; overflow-y: auto; padding-right: .2rem; }
+.entry .when { font-size: .8rem; color: var(--muted); }
+.entry .amount { font-weight: 800; white-space: nowrap; }
+.entry .amount.in { color: var(--num); }
+.entry .amount.out { color: var(--danger); }
+.pix-qr { background: #fff; border: 2px solid var(--line); border-radius: 1rem; padding: .8rem; display: grid; place-items: center; min-height: 12rem; }
+.pix-qr img { width: min(100%, 15rem); height: auto; image-rendering: pixelated; }
+.pix-box { width: 100%; font: inherit; border-radius: 1rem; border: 2px solid var(--line); padding: .6rem .8rem; background: var(--paper); color: var(--ink); }
