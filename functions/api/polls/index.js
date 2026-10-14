@@ -11,7 +11,11 @@ export const onRequest = handle(async ({ request, sql, user }) => {
     select po.id, po.title, po.description, po.kind, po.status, po.closes_at, c.emoji,
       to_char(e.event_date, 'YYYY-MM-DD') as event_date,
       (po.event_id is null or exists (select 1 from checkins ck where ck.event_id = po.event_id and ck.player_id = ${user.id})) as eligible,
-      (select v.option_id from votes v where v.poll_id = po.id and v.voter_id = ${user.id}) as my_option
+      (select v.option_id from votes v where v.poll_id = po.id and v.voter_id = ${user.id}) as my_option,
+      (select coalesce(p.name, t.name, o.label)
+         from votes v join poll_options o on o.id = v.option_id
+         left join players p on p.id = o.player_id left join teams t on t.id = o.team_id
+         where v.poll_id = po.id and v.voter_id = ${user.id}) as my_vote
     from polls po
     left join poll_categories c on c.id = po.category_id
     left join events e on e.id = po.event_id

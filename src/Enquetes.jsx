@@ -96,6 +96,7 @@ export default function Enquetes({ api, user }) {
                 </summary>
                 {p.description && <p className="muted">{p.description}</p>}
                 <p className="muted">Fecha em {left(p.closes_at)}{p.event_date ? `. Evento de ${day(p.event_date)}.` : '.'}</p>
+                {p.my_vote && <p>Seu voto: <strong>{p.my_vote}</strong></p>}
                 {p.eligible ? (
                   <div className="stack">
                     {p.event_date && !p.options.some((o) => o.members?.length) ? (
@@ -132,6 +133,15 @@ export default function Enquetes({ api, user }) {
                   <span className="grow"><strong className="date">{g.date ? fmtDate(g.date) : 'Enquetes avulsas'}</strong></span>
                   <small className="muted">{g.polls.length} {g.polls.length === 1 ? 'resultado' : 'resultados'}</small>
                 </summary>
+                {g.polls.some((p) => p.my_vote) && (
+                  <div className="card sub stack">
+                    <strong>Seus votos neste evento</strong>
+                    {g.polls.filter((p) => p.my_vote).map((p) => (
+                      <p key={p.id} className="muted"><span className="emoji">{p.emoji || '🗳️'}</span> {p.title}: <strong>{p.my_vote}</strong></p>
+                    ))}
+                    <small className="muted">Só você vê os seus votos.</small>
+                  </div>
+                )}
                 <div className="stack">
                   {g.polls.map((p) => (
                     <details key={p.id} className="card sub">
@@ -139,6 +149,9 @@ export default function Enquetes({ api, user }) {
                         <span className="emoji">{p.emoji || '🗳️'}</span>
                         <span className="grow">{p.title}</span>
                       </summary>
+                      {p.my_vote
+                        ? <p>Seu voto: <strong>{p.my_vote}</strong></p>
+                        : p.eligible && <p className="muted">Você não votou nesta enquete.</p>}
                       {!p.results.length && <p className="muted">Ninguém votou.</p>}
                       <div className="stack">
                         {p.results.map((r, i) => (
