@@ -122,7 +122,7 @@ export function DonationCard({ api, user }) {
 
   return (
     <section>
-      <div className="card event">
+      <div className="card event-row">
         {user ? (
           <button className="event-main" onClick={() => setModal('history')} aria-label="Ver o histórico do caixa">
             <small className="muted">Caixa do grupo</small>
@@ -134,7 +134,7 @@ export function DonationCard({ api, user }) {
             <p className="muted">Ajude a comprar bola, rede e outros materiais.</p>
           </div>
         )}
-        <button className="btn small rsvp primary" onClick={() => setModal('donate')}>Doar</button>
+        <button className="btn small primary" onClick={() => setModal('donate')}>Doar</button>
       </div>
       {modal === 'donate' && <DonateModal api={api} info={info} onClose={() => setModal(null)} />}
       {modal === 'history' && <HistoryModal api={api} onClose={() => setModal(null)} />}
