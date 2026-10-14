@@ -133,15 +133,6 @@ export default function Enquetes({ api, user }) {
                   <span className="grow"><strong className="date">{g.date ? fmtDate(g.date) : 'Enquetes avulsas'}</strong></span>
                   <small className="muted">{g.polls.length} {g.polls.length === 1 ? 'resultado' : 'resultados'}</small>
                 </summary>
-                {g.polls.some((p) => p.my_vote) && (
-                  <div className="card sub stack">
-                    <strong>Seus votos neste evento</strong>
-                    {g.polls.filter((p) => p.my_vote).map((p) => (
-                      <p key={p.id} className="muted"><span className="emoji">{p.emoji || '🗳️'}</span> {p.title}: <strong>{p.my_vote}</strong></p>
-                    ))}
-                    <small className="muted">Só você vê os seus votos.</small>
-                  </div>
-                )}
                 <div className="stack">
                   {g.polls.map((p) => (
                     <details key={p.id} className="card sub">
@@ -165,6 +156,15 @@ export default function Enquetes({ api, user }) {
                   ))}
                 </div>
                 {g.date && winnersOf(g).length > 0 && <button className="btn primary" onClick={() => shareResults(g)}>Compartilhar resultados</button>}
+                {g.polls.some((p) => p.my_vote) && (
+                  <div className="card sub stack spaced-top">
+                    <strong>Seus votos neste evento</strong>
+                    {g.polls.filter((p) => p.my_vote).map((p) => (
+                      <p key={p.id} className="muted"><span className="emoji">{p.emoji || '🗳️'}</span> {p.title}: <strong>{p.my_vote}</strong></p>
+                    ))}
+                    <small className="muted">Só você vê os seus votos.</small>
+                  </div>
+                )}
               </details>
             ))}
           </div>
