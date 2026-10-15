@@ -24,6 +24,15 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   }
   if (!target.active) return fail(409, 'Reative o jogador primeiro.');
 
+  // Jogador comum que esqueceu a senha: volta a entrar com os 4 últimos dígitos (e cria outra senha depois).
+  if (b.clearPassword === true) {
+    if (target.role !== 'player') return fail(400, 'Operadores usam o código de acesso.');
+    await sql.transaction([
+      sql`update players set password_hash = null where id = ${target.id}`,
+      sql`delete from sessions where player_id = ${target.id}`,
+    ]);
+    return json({ ok: true });
+  }
   if (b.reset === true) {
     if (target.role !== 'operator') return fail(400, 'Só operadores usam senha.');
     return json({ code: await issueSetupCode(sql, target.id) });

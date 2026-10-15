@@ -17,7 +17,7 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
   const status = !p.active ? 'Inativo, fora do login e do check-in'
     : p.role === 'admin' ? 'Administrador'
     : p.role === 'operator' ? (p.has_password ? 'Operador, com senha criada' : 'Operador, aguardando o primeiro acesso')
-    : 'Jogador, entra com os 4 últimos dígitos do celular';
+    : p.has_password ? 'Jogador, com senha própria' : 'Jogador, entra com os 4 últimos dígitos do celular';
 
   return (
     <div className="overlay" role="presentation" onClick={onClose}>
@@ -39,6 +39,12 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
           <>
             <p className="muted">Operadores montam times, controlam a fila e o placar. Ao promover, a pessoa passa a entrar com senha própria e recebe um código de acesso de 24 horas.</p>
             <button className="btn primary" onClick={() => onChange({ role: 'operator' })}>Tornar operador</button>
+            {p.has_password && (
+              <>
+                <p className="muted">Se a pessoa esqueceu a senha, redefinir faz ela voltar a entrar com os 4 últimos dígitos do celular (e desconecta os aparelhos dela).</p>
+                <button className="btn danger" onClick={() => onChange({ clearPassword: true })}>Redefinir senha</button>
+              </>
+            )}
           </>
         )}
         {p.active && p.role === 'operator' && (

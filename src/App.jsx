@@ -5,6 +5,7 @@ import Home from './Home.jsx';
 import Person from './Person.jsx';
 import Footer from './Footer.jsx';
 import QrCheckin from './QrCheckin.jsx';
+import PasswordModal, { PasswordSuggest } from './PasswordModal.jsx';
 import { Icon } from './icons.jsx';
 import EventDetail from './EventDetail.jsx';
 import { PublicHome } from './Events.jsx';
@@ -98,6 +99,8 @@ export default function App() {
   const [eventId, setEventId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [qr, setQr] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/checkin'); // aberto pelo QR da entrada
+  const [justLogged, setJustLogged] = useState(false); // acabou de entrar: pode sugerir criar senha
+  const [pwdOpen, setPwdOpen] = useState(false);
   const [pendingRsvp, setPendingRsvp] = useState(null); // "Eu vou" tocado antes de entrar
   const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
   useEffect(() => { refresh(); }, [refresh]);
@@ -107,7 +110,7 @@ export default function App() {
   if (qr && !user) {
     return (
       <>
-        <Auth note="Entre com o seu nome para fazer o check-in." onDone={refresh} onBack={leaveQr} />
+        <Auth note="Entre com o seu nome para fazer o check-in." onDone={() => { setJustLogged(true); refresh(); }} onBack={leaveQr} />
         <Footer />
       </>
     );
@@ -119,6 +122,7 @@ export default function App() {
         setPendingRsvp(null);
       }
       setShowLogin(false);
+      setJustLogged(true);
       refresh();
     };
     return (
@@ -151,6 +155,10 @@ export default function App() {
   const openPlayer = (id) => { setEventId(null); setViewId(id); setTab('perfil'); };
   const logout = () => { setUser(null); setTab('inicio'); };
 
+  const skipKey = user ? `senha-nao-${user.id}` : '';
+  const skipped = (() => { try { return !!localStorage.getItem(skipKey); } catch { return false; } })();
+  const suggest = !!user && justLogged && user.role === 'player' && !user.has_password && !skipped;
+
   let page;
   if (eventId) page = <EventDetail api={api} user={user} id={eventId} onBack={() => setEventId(null)} />;
   else if (tab === 'ranking') page = <Ranking api={api} user={user} onOpen={openPlayer} />;
@@ -164,6 +172,11 @@ export default function App() {
   return (
     <>
       {page}
+      {suggest && !pwdOpen && (
+        <PasswordSuggest onCreate={() => setPwdOpen(true)} onLater={() => setJustLogged(false)}
+          onNever={() => { try { localStorage.setItem(skipKey, '1'); } catch { /* sem armazenamento */ } setJustLogged(false); }} />
+      )}
+      {pwdOpen && <PasswordModal api={api} hasPassword={false} onClose={() => { setPwdOpen(false); setJustLogged(false); }} onDone={() => { setPwdOpen(false); setJustLogged(false); refresh(); }} />}
       <Footer />
       <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
         {tabs.map(([k, label]) => (

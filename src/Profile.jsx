@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Admin from './Admin.jsx';
 import ContentAdmin from './ContentAdmin.jsx';
-import { ChangePassword } from './Setup.jsx';
+import PasswordModal from './PasswordModal.jsx';
 import QrAdmin from './QrAdmin.jsx';
 import StatsAdmin from './StatsAdmin.jsx';
 import DonationAdmin from './DonationAdmin.jsx';
@@ -25,6 +25,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
   const [d, setD] = useState(null);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState(false);
+  const [pwdOpen, setPwdOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [card, setCard] = useState(null);
@@ -75,6 +76,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
               {busy ? 'Enviando…' : 'Trocar foto'}
               <input className="sr" type="file" accept="image/*" onChange={pickPhoto} disabled={busy} />
             </label>
+            {mine && <button className="btn ghost" onClick={() => setPwdOpen(true)}>Alterar minha senha</button>}
             {editing ? (
               <>
                 <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Nome" />
@@ -103,9 +105,9 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
         ) : <p className="muted">Os troféus das enquetes aparecem aqui.</p>}
       </section>
 
-      {mine && user.role !== 'player' && <ChangePassword api={api} />}
       {mine && user.role !== 'player' && <QrAdmin />}
       {mine && user.role === 'admin' && <><Admin api={api} /><ContentAdmin api={api} /><DonationAdmin api={api} /><StatsAdmin api={api} /></>}
+      {pwdOpen && <PasswordModal api={api} hasPassword={!!user?.has_password} onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); onSaved?.(); }} />}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
   );

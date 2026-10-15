@@ -40,12 +40,13 @@ export const onRequest = handle(async ({ request, params, env, sql, user }) => {
     if (priv && !pl.password_hash) {
       return json({ error: 'Esta conta ainda não tem senha. Use o primeiro acesso, com o código.', setup: true }, 403);
     }
-    if (await blocked(sql, pl.id, ip, priv)) return fail(429, 'Muitas tentativas erradas. Tente de novo em 15 minutos.');
-    const ok = priv
+    const usesPwd = priv || !!pl.password_hash; // jogador comum só usa senha se criou uma
+    if (await blocked(sql, pl.id, ip, usesPwd)) return fail(429, 'Muitas tentativas erradas. Tente de novo em 15 minutos.');
+    const ok = usesPwd
       ? typeof b.password === 'string' && b.password.length > 0 && (await verifyPassword(b.password, pl.password_hash))
       : /^\d{4}$/.test(b.last4 || '') && pl.phone.endsWith(b.last4);
     await record(sql, pl.id, ip, ok);
-    if (!ok) return fail(401, priv ? 'Senha incorreta.' : 'Os dígitos não conferem.');
+    if (!ok) return fail(401, usesPwd ? 'Senha incorreta.' : 'Os dígitos não conferem.');
     await sql`update players set claimed_at = coalesce(claimed_at, now()) where id = ${pl.id}`;
     return json({ ok: true }, 200, { 'set-cookie': await createSession(sql, pl.id) });
   }
@@ -82,12 +83,16 @@ export const onRequest = handle(async ({ request, params, env, sql, user }) => {
   if (action === 'password') {
     if (!user) return fail(401, 'Entre para continuar.');
     if (badPassword(b.next)) return fail(400, 'A nova senha precisa ter de 8 a 100 caracteres.');
-    const [pl] = await sql`select password_hash from players where id = ${user.id}`;
-    if (!pl.password_hash) return fail(409, 'Sua conta ainda não tem senha. Use o código de primeiro acesso.');
-    if (await blocked(sql, user.id, ip, true)) return fail(429, 'Muitas tentativas erradas. Tente de novo em 15 minutos.');
-    const ok = typeof b.current === 'string' && (await verifyPassword(b.current, pl.password_hash));
+    const [pl] = await sql`select phone, role, password_hash from players where id = ${user.id}`;
+    const hasPwd = !!pl.password_hash;
+    if (!hasPwd && isPriv(pl.role)) return fail(409, 'Sua conta ainda não tem senha. Use o código de primeiro acesso.');
+    if (await blocked(sql, user.id, ip, hasPwd)) return fail(429, 'Muitas tentativas erradas. Tente de novo em 15 minutos.');
+    // Quem ainda não tem senha confirma com os 4 últimos dígitos do celular (a "senha atual" dele).
+    const ok = hasPwd
+      ? typeof b.current === 'string' && (await verifyPassword(b.current, pl.password_hash))
+      : /^\d{4}$/.test(String(b.current || '')) && pl.phone.endsWith(String(b.current));
     await record(sql, user.id, ip, ok);
-    if (!ok) return fail(401, 'A senha atual não confere.');
+    if (!ok) return fail(401, hasPwd ? 'A senha atual não confere.' : 'Os 4 últimos dígitos do celular não conferem.');
     await sql.transaction([
       sql`update players set password_hash = ${await hashPassword(b.next)} where id = ${user.id}`,
       sql`delete from sessions where player_id = ${user.id} and token_hash <> ${await sha256(tokenFrom(request))}`,

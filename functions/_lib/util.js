@@ -29,7 +29,8 @@ async function getUser(request, sql) {
   if (!token) return null;
   const [user] = await sql`
     select p.id, p.name, p.photo_url, p.role,
-           (p.role in ('admin', 'operator') and p.password_hash is null) as needs_password
+           (p.role in ('admin', 'operator') and p.password_hash is null) as needs_password,
+           (p.password_hash is not null) as has_password
     from sessions s join players p on p.id = s.player_id
     where s.token_hash = ${await sha256(token)} and s.expires_at > now() and p.active`;
   return user ?? null;
