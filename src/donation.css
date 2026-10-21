@@ -9,3 +9,5 @@
 .pix-qr { background: #fff; border: 2px solid var(--line); border-radius: 1rem; padding: .8rem; display: grid; place-items: center; min-height: 12rem; }
 .pix-qr img { width: min(100%, 15rem); height: auto; image-rendering: pixelated; }
 .pix-box { width: 100%; font: inherit; border-radius: 1rem; border: 2px solid var(--line); padding: .6rem .8rem; background: var(--paper); color: var(--ink); }
+
+.scroll { grid-auto-rows: max-content; }

@@ -8,7 +8,11 @@ const FORMATIONS = {
   6: [[60, FRONT], [180, FRONT], [300, FRONT], [60, BACK], [180, BACK], [300, BACK]],
 };
 // Posições (x, y) de cada vaga: primeiro a fileira da frente (esquerda para a direita), depois a de trás.
-export const positions = (size, side) => FORMATIONS[size].map(([x, y]) => [x, side === 'a' ? y : COURT.h - y]);
+// Na linha B o nome fica abaixo da foto (longe da rede), então a fileira da frente sobe um pouco
+// para o nome não encostar na linha de ataque a 3 m.
+const B_FRONT = 408;
+export const positions = (size, side) =>
+  FORMATIONS[size].map(([x, y]) => [x, side === 'a' ? y : y === FRONT ? B_FRONT : COURT.h - y]);
 
 // Força suavizada: puxa para 50% quem jogou pouco, para poucas partidas não decidirem sozinhas.
 export const strength = (p) => (p.wins + 1.5) / (p.matches + 3);
