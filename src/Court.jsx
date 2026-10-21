@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { nameSize } from './Person.jsx';
+import FreeCourt from './FreeCourt.jsx';
 import Confirm from './Confirm.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
@@ -154,7 +155,7 @@ export default function Court({ api, user }) {
     await load().catch(() => {});
   };
 
-  if (idle) return <main className="screen"><h2>Quadra</h2><p className="muted">{idle}</p></main>;
+  if (idle) return <FreeCourt api={api} note={idle} />;
   if (!data) return <main className="screen"><p className="muted">Carregando…</p>{err && <p className="err">{err}</p>}</main>;
 
   const { event, teams, free, match, recent } = data;

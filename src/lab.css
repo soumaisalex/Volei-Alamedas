@@ -1,0 +1,30 @@
+/* Quadra livre */
+.court { display: block; width: 100%; max-width: 21rem; margin: 0 auto; touch-action: manipulation; }
+.court-floor { fill: var(--tint); }
+.half-a { fill: rgba(47, 168, 74, .16); }
+.half-b { fill: rgba(224, 159, 0, .16); }
+.court-line { fill: none; stroke: var(--ink); stroke-opacity: .5; stroke-width: 3; }
+.court-net { stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
+.court-post { fill: var(--ink); }
+.court-tag { fill: var(--ink); fill-opacity: .55; font: 800 13px var(--body); letter-spacing: .12em; }
+.court-name { fill: var(--ink); font: 800 14px var(--body); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+.court-ini { fill: #fff; font: 400 30px var(--display); }
+.court-empty { fill: var(--paper); stroke-width: 3; stroke-dasharray: 6 5; }
+.court-plus { font: 800 32px var(--body); }
+.spot { cursor: pointer; outline: none; }
+.spot:focus-visible circle:first-of-type { stroke: var(--leaf); stroke-width: 5; }
+.scroll-y { max-height: 50vh; overflow-y: auto; align-content: start; }
+.card.pick.picked { border-color: var(--leaf); background: var(--tint); }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.cmp-head, .cmp-row { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) 3.4rem; gap: .6rem; align-items: center; }
+.cmp-head { font-weight: 800; font-size: .9rem; }
+.cmp-head .a, .cmp-row .a { text-align: left; }
+.cmp-head .b, .cmp-row .b { text-align: right; }
+.cmp-row { margin: .5rem 0; }
+.cmp-row .v { font: 400 1.2rem var(--display); }
+.cmp-row .v.lead { color: var(--num); }
+.cmp-mid { display: grid; gap: .25rem; text-align: center; }
+.cmp-mid small { color: var(--muted); font-weight: 800; }
+.cmp-bar { display: flex; height: .7rem; border-radius: 99px; overflow: hidden; background: var(--line); }
+.cmp-bar span { display: block; height: 100%; }
+.lab-tag { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; margin-right: .4rem; vertical-align: middle; }

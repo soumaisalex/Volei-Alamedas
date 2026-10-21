@@ -1,4 +1,5 @@
 import { AUTHOR } from './credits.js';
+import { COURT, positions } from './lab.js';
 
 // Cards compartilháveis em 9:16 (PNG 1080x1920: status do WhatsApp, stories e reels),
 // desenhados no navegador com a identidade da logo. O conteúdo fica longe das bordas
@@ -68,7 +69,7 @@ async function base(subtitle) {
   return { canvas, ctx };
 }
 
-async function avatar(ctx, p, cx, cy, r, ring = 12) {
+async function avatar(ctx, p, cx, cy, r, ring = 12, color = C.leaf) {
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
   const im = p.photo_url ? await loadImg(p.photo_url) : null;
@@ -80,7 +81,7 @@ async function avatar(ctx, p, cx, cy, r, ring = 12) {
     txt(ctx, p.name[0], cx, cy, { size: r, family: DISPLAY, color: '#fff', base: 'middle', maxW: r * 2 });
   }
   ctx.restore();
-  ctx.lineWidth = ring; ctx.strokeStyle = C.leaf;
+  ctx.lineWidth = ring; ctx.strokeStyle = color;
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
 }
 
@@ -190,6 +191,46 @@ export async function pollsCard({ date, items }) {
     txt(ctx, ws.map((w) => w.label).join(' e ') + (it.winners.length > 2 ? ' e mais' : ''), tx, cy + 32, { size: 38, family: DISPLAY, color: C.deep, align: 'left', maxW });
     txt(ctx, '🏆', 958, cy, { size: 44, align: 'right', base: 'middle', maxW: 60 });
   }
+  return finish(canvas, ctx);
+}
+
+// Quadra livre: a quadra montada (as duas linhas) e um resumo da comparação.
+// a e b: vagas (jogador ou null); rows: [{ label, a, b }]
+export async function labCard({ size, a, b, rows }) {
+  const { canvas, ctx } = await base('Quadra livre');
+  txt(ctx, 'Linha A x Linha B', 540, 505, { size: 54, family: DISPLAY, color: C.deep });
+
+  const X0 = 315, Y0 = 540, S = 1.25, W = COURT.w * S, H = COURT.h * S;
+  ctx.fillStyle = C.tint; ctx.fillRect(X0, Y0, W, H);
+  ctx.fillStyle = 'rgba(47, 168, 74, .16)'; ctx.fillRect(X0, Y0, W, H / 2);
+  ctx.fillStyle = 'rgba(224, 159, 0, .18)'; ctx.fillRect(X0, Y0 + H / 2, W, H / 2);
+  ctx.strokeStyle = C.forest; ctx.lineWidth = 5; ctx.strokeRect(X0, Y0, W, H);
+  for (const d of [-120, 120]) { ctx.beginPath(); ctx.moveTo(X0, Y0 + (COURT.h / 2 + d) * S); ctx.lineTo(X0 + W, Y0 + (COURT.h / 2 + d) * S); ctx.stroke(); }
+  ctx.strokeStyle = C.deep; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(X0 - 22, Y0 + H / 2); ctx.lineTo(X0 + W + 22, Y0 + H / 2); ctx.stroke();
+  txt(ctx, 'LINHA A', 540, Y0 + 36, { size: 24, weight: '800', color: C.forest });
+  txt(ctx, 'LINHA B', 540, Y0 + H - 18, { size: 24, weight: '800', color: C.forest });
+
+  const colors = { a: C.leaf, b: '#e09f00' };
+  for (const [side, list] of [['a', a], ['b', b]]) {
+    const pos = positions(size, side);
+    for (let i = 0; i < pos.length; i++) {
+      const cx = X0 + pos[i][0] * S, cy = Y0 + pos[i][1] * S, p = list[i];
+      if (p) {
+        await avatar(ctx, p, cx, cy, 46, 7, colors[side]);
+        txt(ctx, p.name.split(' ')[0], cx, cy + 46 + 26, { size: 22, weight: '800', color: C.deep, maxW: 120 });
+      } else {
+        ctx.setLineDash([8, 7]); ctx.lineWidth = 4; ctx.strokeStyle = colors[side];
+        ctx.beginPath(); ctx.arc(cx, cy, 42, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+  }
+  rows.slice(0, 3).forEach((r, i) => {
+    const y = 1505 + i * 58;
+    txt(ctx, r.a, 120, y, { size: 36, family: DISPLAY, color: C.leaf, align: 'left', maxW: 190 });
+    txt(ctx, r.label, 540, y - 4, { size: 26, weight: '800', color: C.muted, maxW: 520 });
+    txt(ctx, r.b, 960, y, { size: 36, family: DISPLAY, color: '#e09f00', align: 'right', maxW: 190 });
+  });
   return finish(canvas, ctx);
 }
 
