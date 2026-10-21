@@ -4,6 +4,20 @@ import { openPollsForEvent } from '../../../_lib/polls.js';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 
+// Só http/https; corrige "http://https://..." e completa endereços sem https://.
+function normalizeStreamUrl(raw) {
+  let u = raw.replace(/\s+/g, '');
+  u = u.replace(/^(?:https?:\/\/)+/i, (m) => `${m.split('://').filter(Boolean).pop().toLowerCase()}://`);
+  if (!/^https?:\/\//i.test(u)) {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(u)) return null; // outro esquema (javascript:, data:...)
+    u = `https://${u}`;
+  }
+  try {
+    const x = new URL(u);
+    return ['http:', 'https:'].includes(x.protocol) && x.hostname.includes('.') && x.href.length <= 300 ? x.href : null;
+  } catch { return null; }
+}
+
 export const onRequest = handle(async ({ request, params, sql, user }) => {
   // O resumo do evento é público; todo o resto exige login.
   if (!user && !(request.method === 'GET' && params.action === 'summary')) return fail(401, 'Entre para continuar.');
@@ -22,6 +36,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const [info] = await sql`
       select to_char(event_date, 'YYYY-MM-DD') as event_date, status, title, cancel_reason,
              (select count(*)::int from checkins where event_id = ${id}) as players,
+             (case when ${!!user} then stream_url end) as stream_url, (stream_url is not null) as has_stream,
              exists (select 1 from event_rsvps where event_id = ${id} and player_id = ${user?.id ?? null}) as going,
              (case when ${can(user, 'admin')} then (select count(*)::int from event_rsvps where event_id = ${id}) end) as rsvp_count
       from events where id = ${id}`;
@@ -92,6 +107,16 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       await dissolveTeams(sql, id);
     }
     return json({ ok: true });
+  }
+
+  // Link da transmissão: só o admin cadastra; só quem está logado recebe o link.
+  if (action === 'stream') {
+    if (!can(user, 'admin')) return fail(403, 'Só o admin cadastra o link da transmissão.');
+    const raw = String(body.url || '').trim();
+    const url = raw ? normalizeStreamUrl(raw) : null;
+    if (raw && !url) return fail(400, 'Link inválido. Cole o endereço completo da transmissão (começando com https://).');
+    await sql`update events set stream_url = ${url} where id = ${id}`;
+    return json({ ok: true, url });
   }
 
   if (action === 'rsvp') {

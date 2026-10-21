@@ -3,6 +3,7 @@ import ShareCard from './ShareCard.jsx';
 import { Icon } from './icons.jsx';
 import Confirm from './Confirm.jsx';
 import { RsvpAdmin } from './Rsvp.jsx';
+import { StreamLink, StreamEditor } from './Stream.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
 import { eventCard } from './cards.js';
 import { STATUS } from './shared.jsx';
@@ -53,6 +54,7 @@ export default function EventDetail({ api, user, id, onBack }) {
   const [cancel, setCancel] = useState(false);
   const [reason, setReason] = useState('');
   const [roster, setRoster] = useState(null);
+  const [streamEdit, setStreamEdit] = useState(false);
   const [fix, setFix] = useState(null);
   const [del, setDel] = useState(null);
   const load = useCallback(() => api(`/events/${id}/summary`).then(setS).catch((e) => setErr(e.message)), [api, id]);
@@ -95,6 +97,11 @@ export default function EventDetail({ api, user, id, onBack }) {
         <button className={`btn ${s.going ? 'ghost' : 'primary'}`} onClick={toggleGoing}>{s.going ? 'Não vou mais' : 'Eu vou'}</button>
       )}
       {user?.role === 'admin' && ['scheduled', 'checkin_open'].includes(s.status) && <RsvpAdmin api={api} eventId={id} count={s.rsvp_count} />}
+      <StreamLink url={s.stream_url} status={s.status} />
+      {!user && s.has_stream && s.status !== 'cancelled' && <p className="muted">Este evento tem transmissão. Entre para assistir.</p>}
+      {user?.role === 'admin' && s.status !== 'cancelled' && (
+        <button className="btn ghost" onClick={() => setStreamEdit(true)}>{s.stream_url ? 'Editar link da transmissão' : 'Definir link da transmissão'}</button>
+      )}
       {s.status === 'finished' && <button className="btn primary" onClick={() => setCard({ name: 'resumo do evento', make: () => eventCard(s) })}>Compartilhar resumo</button>}
 
       {s.status !== 'cancelled' && (
@@ -150,6 +157,7 @@ export default function EventDetail({ api, user, id, onBack }) {
           </div>
         ) : <button className="btn danger" onClick={() => setCancel(true)}>Cancelar evento</button>
       )}
+      {streamEdit && <StreamEditor api={api} eventId={id} url={s.stream_url} onClose={() => setStreamEdit(false)} onSaved={() => { setStreamEdit(false); load(); }} />}
       {roster && <Roster m={roster} admin={user?.role === 'admin'} onClose={() => setRoster(null)}
         onFix={() => { setFix(roster); setRoster(null); }} onDelete={() => { setDel(roster); setRoster(null); }} />}
       {fix && (

@@ -5,6 +5,7 @@ import Confirm from './Confirm.jsx';
 import Person from './Person.jsx';
 import NewPlayer from './NewPlayer.jsx';
 import { RsvpAdmin } from './Rsvp.jsx';
+import { StreamLink, StreamEditor } from './Stream.jsx';
 import { Icon } from './icons.jsx';
 import { InfoCards } from './InfoCards.jsx';
 import { DonationCard } from './Donation.jsx';
@@ -46,6 +47,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [ask, setAsk] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [newPlayer, setNewPlayer] = useState(false);
+  const [streamEdit, setStreamEdit] = useState(false);
   const [blocked, setBlocked] = useState([]);
   const [pending, setPending] = useState([]);
   const askOk = (title, text, label, run, danger) => setAsk({ title, text, label, run, danger });
@@ -116,17 +118,20 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
               {cur.me_in
                 ? <button className="btn ghost" onClick={() => askOk('Sair da quadra?', 'Você será marcado como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Sim, saí', () => act('leave'), true)}>Saí da quadra</button>
                 : <button className="btn primary" onClick={() => askOk('Fazer check-in?', 'Você será marcado como presente neste evento.', 'Fazer check-in', () => act('checkin'))}>Estou aqui</button>}
+              <StreamLink url={cur.stream_url} status={cur.status} />
               <button className="btn" onClick={() => setPanel(panel === 'others' ? null : 'others')}>Marcar outra pessoa</button>
             </>
           ) : (
             <>
               <button className={`btn ${cur.going ? 'ghost' : 'primary'}`} onClick={() => act('rsvp', { going: !cur.going })}>{cur.going ? 'Não vou mais' : 'Eu vou'}</button>
+              <StreamLink url={cur.stream_url} status={cur.status} />
               <p className="muted">O check-in abre quando um operador iniciar o evento.</p>
               {user.role === 'admin' && <RsvpAdmin api={api} eventId={cur.id} count={cur.rsvp_count} />}
             </>
           )}
           {ops && !live && <button className="btn" onClick={() => askOk('Iniciar o evento?', 'O check-in será aberto para todos. O tamanho dos times é livre: monte as linhas como quiser na tela da Quadra.', 'Iniciar evento', () => act('start'))}>Iniciar evento e abrir check-in</button>}
           {ops && live && <button className="btn" onClick={() => askOk('Encerrar o evento?', 'O evento termina e as votações das enquetes abrem por 24 horas. Não será possível continuar as partidas.', 'Encerrar evento', () => act('finish'), true)}>Encerrar evento</button>}
+          {admin && <button className="btn ghost" onClick={() => setStreamEdit(true)}>{cur.stream_url ? 'Editar link da transmissão' : 'Definir link da transmissão'}</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
         </section>
       )}
@@ -201,6 +206,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
       <EventCards title="Eventos anteriores" events={past} onOpen={onOpenEvent} />
       <InfoCards api={api} />
       <DonationCard api={api} user={user} />
+      {streamEdit && cur && <StreamEditor api={api} eventId={cur.id} url={cur.stream_url} onClose={() => setStreamEdit(false)} onSaved={() => { setStreamEdit(false); load(); }} />}
       {newPlayer && (
         <NewPlayer api={api} live={live} onClose={() => setNewPlayer(false)}
           onCreated={() => api('/players').then(setPlayers).catch(() => {})}

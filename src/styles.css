@@ -287,3 +287,6 @@ details > .tiles, details > .chips { margin-bottom: .8rem; }
 .range > p { grid-column: 1 / -1; }
 
 .card.sub { background: var(--mist); }
+
+/* Botão da transmissão */
+.btn.stream.live::before { content: ""; display: inline-block; width: .6rem; height: .6rem; margin-right: .5rem; border-radius: 50%; background: #e53935; box-shadow: 0 0 0 2px #fff; }

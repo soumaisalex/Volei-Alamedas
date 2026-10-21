@@ -19,6 +19,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
              (select count(*)::int from checkins c where c.event_id = e.id and c.left_at is null) as present,
              (select count(*)::int from checkins c where c.event_id = e.id) as attended,
              exists (select 1 from checkins c where c.event_id = e.id and c.player_id = ${user?.id ?? null} and c.left_at is null) as me_in,
+             (case when ${!!user} then e.stream_url end) as stream_url,
              exists (select 1 from event_rsvps r where r.event_id = e.id and r.player_id = ${user?.id ?? null}) as going,
              (case when ${can(user, 'admin')} then (select count(*)::int from event_rsvps r where r.event_id = e.id) end) as rsvp_count
       from events e order by e.event_date desc limit 30`);
