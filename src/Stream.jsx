@@ -5,7 +5,12 @@ export function StreamLink({ url, status }) {
   if (!url || status === 'cancelled') return null;
   const live = status === 'in_progress';
   const label = live ? 'Ao vivo agora: assistir' : status === 'finished' ? 'Assistir gravação' : 'Transmissão do evento';
-  return <a className={`btn stream${live ? ' live primary' : ''}`} href={url} target="_blank" rel="noopener noreferrer">{label}</a>;
+  return (
+    <a className={`btn stream${live ? ' live' : ''}`} href={url} target="_blank" rel="noopener noreferrer">
+      {label}
+      <svg className="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+    </a>
+  );
 }
 
 // Janela do admin para colar, trocar ou remover o link do evento.

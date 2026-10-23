@@ -290,3 +290,8 @@ details > .tiles, details > .chips { margin-bottom: .8rem; }
 
 /* Botão da transmissão */
 .btn.stream.live::before { content: ""; display: inline-block; width: .6rem; height: .6rem; margin-right: .5rem; border-radius: 50%; background: #e53935; box-shadow: 0 0 0 2px #fff; }
+
+/* Botões da transmissão: vermelho cheio com o triângulo de "play" depois do texto */
+.btn.stream { display: flex; align-items: center; justify-content: center; gap: .5rem; background: #d32f2f; border-color: #d32f2f; color: #fff; text-decoration: none; }
+.btn.stream .play { width: 1.3rem; height: 1.3rem; fill: #fff; flex: none; }
+.btn.stream.live::before { margin-right: 0; background: #fff; box-shadow: none; }
