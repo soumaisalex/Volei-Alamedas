@@ -3,7 +3,7 @@ import PollsAdmin from './PollsAdmin.jsx';
 import Person from './Person.jsx';
 import { fmtDate } from './shared.jsx';
 import ShareCard from './ShareCard.jsx';
-import { pollsCard } from './cards.js';
+import { pollsCard, hallCard } from './cards.js';
 
 const Face = ({ p }) => (p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.label[0]}</span>);
 
@@ -53,7 +53,10 @@ export default function Enquetes({ api, user }) {
   const [err, setErr] = useState('');
   const [help, setHelp] = useState(false);
   const [card, setCard] = useState(null);
-  const load = useCallback(() => api('/polls').then((r) => setPolls(r.polls)).catch((e) => setErr(e.message)), [api]);
+  const [hall, setHall] = useState([]);
+  const load = useCallback(() => api('/polls')
+    .then((r) => { setPolls(r.polls); return api('/polls/hall').then(setHall).catch(() => {}); })
+    .catch((e) => setErr(e.message)), [api]);
   useEffect(() => { load(); }, [load]);
 
   const vote = async (poll, option) => {
@@ -165,6 +168,33 @@ export default function Enquetes({ api, user }) {
                     <small className="muted">Só você vê os seus votos.</small>
                   </div>
                 )}
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!!hall.length && (
+        <section>
+          <h3>Hall da fama</h3>
+          <div className="stack">
+            {hall.map((c) => (
+              <details key={c.id} className="card">
+                <summary>
+                  <span className="emoji">{c.emoji || '🏆'}</span>
+                  <span className="grow">{c.name}</span>
+                  <small className="muted">{c.winners.length} {c.winners.length === 1 ? 'campeão' : 'campeões'}</small>
+                </summary>
+                <div className="stack">
+                  {c.winners.map((w) => (
+                    <div key={w.id} className="row res">
+                      <Face p={{ label: w.name, photo_url: w.photo_url }} />
+                      <span className="grow">{w.name}{w.last_date && <small className="muted"> {day(w.last_date)}</small>}</span>
+                      <strong>🏆 {w.n}x</strong>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn primary" onClick={() => setCard({ name: `hall da fama ${c.name}`, make: () => hallCard(c) })}>Compartilhar card</button>
               </details>
             ))}
           </div>

@@ -194,6 +194,36 @@ export async function pollsCard({ date, items }) {
   return finish(canvas, ctx);
 }
 
+// Hall da fama de uma categoria: todos os jogadores que já ganharam a premiação.
+// winners: [{ name, photo_url, n, last_date }] (do mais recente ao mais antigo)
+export async function hallCard({ emoji, name, winners }) {
+  const { canvas, ctx } = await base('Hall da fama');
+  txt(ctx, emoji || '🏆', 540, 520, { size: 84, base: 'middle', maxW: 120 });
+  txt(ctx, name, 540, 625, { size: 62, family: DISPLAY, color: C.deep, maxW: 860 });
+  const total = winners.reduce((s, w) => s + w.n, 0);
+  txt(ctx, `${winners.length} ${winners.length === 1 ? 'campeão' : 'campeões'} · ${total} ${total === 1 ? 'troféu' : 'troféus'}`, 540, 678, { size: 30, weight: '800', color: C.muted });
+
+  const cols = winners.length <= 6 ? 1 : winners.length <= 14 ? 2 : 3;
+  const shown = winners.slice(0, { 1: 6, 2: 14, 3: 27 }[cols]);
+  const rows = Math.ceil(shown.length / cols);
+  const top = 720, rh = Math.min(150, Math.floor(930 / rows)), cw = 900 / cols;
+  const r = Math.min(44, Math.floor((rh - 24) / 2));
+  const fs = [0, 38, 30, 26][cols];
+  for (let i = 0; i < shown.length; i++) {
+    const w = shown[i];
+    const x = 90 + (i % cols) * cw, y = top + Math.floor(i / cols) * rh, cy = y + rh / 2;
+    ctx.fillStyle = (Math.floor(i / cols) + (i % cols)) % 2 ? '#fff' : C.soft; rr(ctx, x + 4, y + 4, cw - 8, rh - 8, 24); ctx.fill();
+    await avatar(ctx, w, x + 18 + r, cy, r, 6);
+    const tx = x + 18 + 2 * r + 14, maxW = x + cw - 14 - tx - (cols === 1 ? 60 : 0);
+    const date = w.last_date && day(w.last_date, { day: '2-digit', month: '2-digit', year: '2-digit' });
+    txt(ctx, w.name, tx, cy - 6, { size: fs, family: DISPLAY, color: C.deep, align: 'left', maxW });
+    txt(ctx, [w.n > 1 && `${w.n}x`, date].filter(Boolean).join(' · '), tx, cy + fs * 0.9, { size: Math.max(22, fs - 12), weight: '800', color: C.muted, align: 'left', maxW });
+    if (cols === 1) txt(ctx, '🏆', x + cw - 22, cy, { size: 44, align: 'right', base: 'middle', maxW: 60 });
+  }
+  if (winners.length > shown.length) txt(ctx, `e mais ${winners.length - shown.length}`, 540, 1678, { size: 26, weight: '800', color: C.muted });
+  return finish(canvas, ctx);
+}
+
 // Quadra livre: a quadra montada (as duas linhas) e um resumo da comparação.
 // a e b: vagas (jogador ou null); rows: [{ label, a, b }]
 export async function labCard({ size, a, b, rows }) {

@@ -10,6 +10,20 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   if (action === 'categories' && request.method === 'GET') {
     return json(await sql`select id, name, description, emoji, kind, active, sort_order from poll_categories order by sort_order, name`);
   }
+  // Hall da fama: todos os campeões de cada categoria (do mais recente ao mais antigo).
+  if (action === 'hall' && request.method === 'GET') {
+    return json(await sql`
+      select c.id, c.name, c.emoji,
+        json_agg(json_build_object('id', w.id, 'name', w.name, 'photo_url', w.photo_url, 'n', w.n, 'last_date', w.last_date)
+                 order by w.last_date desc nulls last, w.n desc, w.name) as winners
+      from poll_categories c
+      join (select a.category_id, p.id, p.name, p.photo_url, count(*)::int as n,
+                   to_char(max(e.event_date), 'YYYY-MM-DD') as last_date
+            from awards a join players p on p.id = a.player_id
+            left join events e on e.id = a.event_id
+            group by a.category_id, p.id) w on w.category_id = c.id
+      group by c.id order by min(c.sort_order), c.name`);
+  }
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
   const b = await readBody(request);
 
