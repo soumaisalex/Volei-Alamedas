@@ -8,7 +8,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   const { action } = params;
 
   if (action === 'categories' && request.method === 'GET') {
-    return json(await sql`select id, name, description, emoji, kind, active, sort_order from poll_categories order by sort_order, name`);
+    return json(await sql`select id, name, description, emoji, kind, active, hall_visible, sort_order from poll_categories order by sort_order, name`);
   }
   // Hall da fama: todos os campeões de cada categoria (do mais recente ao mais antigo).
   if (action === 'hall' && request.method === 'GET') {
@@ -22,6 +22,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
             from awards a join players p on p.id = a.player_id
             left join events e on e.id = a.event_id
             group by a.category_id, p.id) w on w.category_id = c.id
+      where c.hall_visible
       group by c.id order by min(c.sort_order), c.name`);
   }
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
@@ -64,6 +65,12 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       await sql`insert into poll_categories (name, description, emoji, kind, sort_order)
                 select ${name}, ${description}, ${emoji}, ${kind}, coalesce(max(sort_order), 0) + 1 from poll_categories`;
     }
+    return json({ ok: true });
+  }
+
+  if (action === 'hall-visible') {
+    if (!UUID.test(b.id || '')) return fail(400, 'Categoria inválida.');
+    await sql`update poll_categories set hall_visible = ${b.visible !== false} where id = ${b.id}`;
     return json({ ok: true });
   }
 

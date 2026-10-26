@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import PollsAdmin from './PollsAdmin.jsx';
+import HallAdmin from './HallAdmin.jsx';
 import Person from './Person.jsx';
 import { fmtDate } from './shared.jsx';
 import ShareCard from './ShareCard.jsx';
@@ -202,6 +203,7 @@ export default function Enquetes({ api, user }) {
       )}
 
       {user.role === 'admin' && <PollsAdmin api={api} open={open} onChange={load} />}
+      {user.role === 'admin' && <HallAdmin api={api} onChange={load} />}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
       {help && <PollHelp api={api} onClose={() => setHelp(false)} />}
     </main>
