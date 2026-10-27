@@ -1,5 +1,5 @@
-import { handle, json, fail, can, readBody, UUID } from '../../../_lib/util.js';
-import { deliver, toTopic, toPlayers, pushReady } from '../../../_lib/push.js';
+import { handle, json, fail, can, readBody, UUID } from '../../_lib/util.js';
+import { deliver, toTopic, toPlayers, pushReady } from '../../_lib/push.js';
 
 const TOPICS = ['event', 'polls', 'notice', 'admin'];
 const cleanTopics = (list, user) => {
