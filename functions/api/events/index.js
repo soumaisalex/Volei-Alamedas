@@ -1,4 +1,5 @@
 import { handle, json, fail, can, readBody } from '../../_lib/util.js';
+import { fire, toTopic, fmtDay } from '../../_lib/push.js';
 
 // Próxima quinta-feira (hoje, se for quinta) no horário de Aracaju (UTC-3).
 function nextThursday() {
@@ -7,7 +8,8 @@ function nextThursday() {
   return d.toISOString().slice(0, 10);
 }
 
-export const onRequest = handle(async ({ request, sql, user }) => {
+export const onRequest = handle(async (ctx) => {
+  const { request, sql, user } = ctx;
   if (request.method === 'GET') {
     // Cria a quinta sob demanda (Pages não tem cron). Cancelado não é recriado.
     const day = nextThursday();
@@ -32,7 +34,11 @@ export const onRequest = handle(async ({ request, sql, user }) => {
     const [ev] = await sql`insert into events (event_date, title, created_by)
                            values (${event_date}::date, ${title}, ${user.id})
                            on conflict do nothing returning id`;
-    return ev ? json(ev, 201) : fail(409, 'Já existe um evento nesse dia.');
+    if (!ev) return fail(409, 'Já existe um evento nesse dia.');
+    fire(ctx, () => toTopic(ctx, 'event', {
+      title: 'Novo evento 🗓️', body: `${fmtDay(event_date)}${title ? ` · ${title}` : ''}. Confirme sua presença!`, ir: 'inicio', tag: `evento-${ev.id}`,
+    }, { except: [user.id] }));
+    return json(ev, 201);
   }
   return fail(405, 'Método não permitido');
 });

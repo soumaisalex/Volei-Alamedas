@@ -15,6 +15,7 @@ import Enquetes from './Enquetes.jsx';
 import ThemeButton from './ThemeButton.jsx';
 import Profile from './Profile.jsx';
 
+const IR = ['inicio', 'quadra', 'enquetes', 'perfil']; // destinos ao tocar numa notificação
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 const STATUS = { finished: 'Encerrado', cancelled: 'Cancelado', in_progress: 'Em andamento', scheduled: 'Agendado', checkin_open: 'Check-in aberto' };
 
@@ -94,7 +95,7 @@ function Auth({ onDone, onBack, note }) {
 
 export default function App() {
   const [user, setUser] = useState(undefined);
-  const [tab, setTab] = useState('inicio');
+  const [tab, setTab] = useState(() => { const ir = new URLSearchParams(window.location.search).get('ir'); return IR.includes(ir) ? ir : 'inicio'; });
   const [viewId, setViewId] = useState(null);
   const [eventId, setEventId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
@@ -104,6 +105,12 @@ export default function App() {
   const [pendingRsvp, setPendingRsvp] = useState(null); // "Eu vou" tocado antes de entrar
   const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { // toque numa notificação: abre a tela certa (limpa o ?ir= e escuta o aviso do service worker)
+    if (window.location.search.includes('ir=')) window.history.replaceState(null, '', '/');
+    const onMsg = (e) => { if (e.data?.type === 'ir' && IR.includes(e.data.ir)) { setViewId(null); setEventId(null); setTab(e.data.ir); } };
+    navigator.serviceWorker?.addEventListener('message', onMsg);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
+  }, []);
   const leaveQr = () => { window.history.replaceState(null, '', '/'); setQr(false); };
 
   if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;

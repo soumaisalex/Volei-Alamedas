@@ -2,10 +2,11 @@ import { handle, json, fail } from '../../_lib/util.js';
 import { closeDue } from '../../_lib/polls.js';
 
 // Abertas + encerradas nos últimos 30 dias. Voto secreto: contagem só aparece depois de encerrada.
-export const onRequest = handle(async ({ request, sql, user }) => {
+export const onRequest = handle(async (ctx) => {
+  const { request, sql, user } = ctx;
   if (!user) return fail(401, 'Entre para continuar.');
   if (request.method !== 'GET') return fail(405, 'Método não permitido.');
-  await closeDue(sql);
+  await closeDue(sql, ctx);
 
   const polls = await sql`
     select po.id, po.title, po.description, po.kind, po.status, po.closes_at, c.emoji,

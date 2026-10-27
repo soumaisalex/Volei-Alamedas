@@ -10,6 +10,7 @@ import { Icon } from './icons.jsx';
 import { InfoCards } from './InfoCards.jsx';
 import { DonationCard } from './Donation.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
+import { disablePush } from './push.js';
 
 // Ações sobre uma pessoa que está na quadra.
 function PresentSheet({ p, ops, onLeave, onRemove, onClose }) {
@@ -68,6 +69,13 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   }, [api, ops, admin]);
   useEffect(() => { load().catch((e) => setErr(e.message)); api('/players').then(setPlayers).catch(() => {}); }, [load, api]);
 
+  const notifyPending = async () => {
+    setErr(''); setOk('');
+    try {
+      const r = await api(`/events/${cur.id}/notify-pending`, { body: {} });
+      setOk(r.total ? `Aviso enviado para ${r.sent} de ${r.pending} pendentes.` : 'Nenhum pendente ativou as notificações.');
+    } catch (e) { setErr(e.message); }
+  };
   const act = async (action, body) => {
     setErr(''); setOk('');
     try { await api(`/events/${cur.id}/${action}`, { body: body || {} }); setPanel(null); await load(); }
@@ -85,7 +93,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
     try { await api(`/events/${e.id}/rsvp`, { body: { going: !e.going } }); await load(); }
     catch (x) { setErr(x.message); }
   };
-  const logout = async () => { await api('/auth/logout', { method: 'POST', body: {} }); onLogout(); };
+  const logout = async () => { await disablePush(api).catch(() => {}); await api('/auth/logout', { method: 'POST', body: {} }); onLogout(); };
 
   const present = here.filter((p) => !p.left_at);
   const presentIds = new Set(present.map((p) => p.id));
@@ -186,6 +194,9 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
           <button className="btn spaced-top"
             onClick={() => askOk('Marcar todos como presentes?', `Todas as ${pending.length} pessoas desta lista serão marcadas como presentes. Confirme só se já chegaram.`, 'Marcar todos', () => act('checkin-all'))}>
             Marcar todos como presentes
+          </button>
+          <button className="btn ghost" onClick={() => askOk('Avisar os pendentes?', `Uma notificação será enviada para as ${pending.length} pessoas desta lista que ativaram os avisos.`, 'Enviar aviso', notifyPending)}>
+            Avisar pendentes por notificação
           </button>
         </section>
       )}

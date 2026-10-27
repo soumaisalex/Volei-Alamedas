@@ -1,9 +1,11 @@
 import { handle, json, fail, can, readBody, UUID } from '../../_lib/util.js';
 import { closeDue, closePoll, openPollsForEvent } from '../../_lib/polls.js';
+import { fire, toTopic } from '../../_lib/push.js';
 
 const hoursOf = (v, dflt = 24) => (Number.isInteger(Number(v)) && v >= 1 && v <= 168 ? Number(v) : dflt);
 
-export const onRequest = handle(async ({ request, params, sql, user }) => {
+export const onRequest = handle(async (ctx) => {
+  const { request, params, sql, user } = ctx;
   if (!user) return fail(401, 'Entre para continuar.');
   const { action } = params;
 
@@ -29,7 +31,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
   const b = await readBody(request);
 
   if (action === 'vote') {
-    await closeDue(sql);
+    await closeDue(sql, ctx);
     if (!UUID.test(b.poll_id || '') || !UUID.test(b.option_id || '')) return fail(400, 'Voto inválido.');
     const [poll] = await sql`select id, event_id, status from polls where id = ${b.poll_id}`;
     if (!poll || poll.status !== 'open') return fail(409, 'Esta votação já foi encerrada.');
@@ -76,7 +78,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
 
   if (action === 'open-event') {
     if (!UUID.test(b.event_id || '')) return fail(400, 'Evento inválido.');
-    return json({ created: await openPollsForEvent(sql, b.event_id, hoursOf(b.hours)) });
+    return json({ created: await openPollsForEvent(sql, b.event_id, hoursOf(b.hours), ctx) });
   }
 
   if (action === 'create') {
@@ -88,17 +90,18 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       values (${title}, ${String(b.description || '').trim() || null}, 'player', 'open', now(), now() + ${hoursOf(b.hours)}::int * interval '1 hour')
       returning id`;
     await sql.transaction(options.map((label) => sql`insert into poll_options (poll_id, label) values (${poll.id}, ${label})`));
+    fire(ctx, () => toTopic(ctx, 'polls', { title: 'Nova enquete 🗳️', body: title, ir: 'enquetes', tag: `enquete-${poll.id}` }, { except: [user.id] }));
     return json({ ok: true }, 201);
   }
 
   if (action === 'close-all') {
     const open = await sql`select id from polls where status = 'open'`;
-    for (const p of open) await closePoll(sql, p.id);
+    for (const p of open) await closePoll(sql, p.id, ctx);
     return json({ closed: open.length });
   }
 
   if (!UUID.test(b.poll_id || '')) return fail(400, 'Enquete inválida.');
-  if (action === 'close') return (await closePoll(sql, b.poll_id)) ? json({ ok: true }) : fail(409, 'Esta enquete já foi encerrada.');
+  if (action === 'close') return (await closePoll(sql, b.poll_id, ctx)) ? json({ ok: true }) : fail(409, 'Esta enquete já foi encerrada.');
   if (action === 'extend') {
     const done = await sql`update polls set closes_at = now() + ${hoursOf(b.hours, 12)}::int * interval '1 hour'
                            where id = ${b.poll_id} and status = 'open' returning id`;

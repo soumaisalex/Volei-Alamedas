@@ -1,6 +1,7 @@
 import { handle, json, fail, can, readBody, UUID } from '../../../_lib/util.js';
 import { dissolveTeams } from '../../../_lib/court.js';
 import { openPollsForEvent } from '../../../_lib/polls.js';
+import { fire, toTopic, toAdmins, toPlayers, fmtDay } from '../../../_lib/push.js';
 
 const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
 
@@ -18,12 +19,13 @@ function normalizeStreamUrl(raw) {
   } catch { return null; }
 }
 
-export const onRequest = handle(async ({ request, params, sql, user }) => {
+export const onRequest = handle(async (ctx) => {
+  const { request, params, sql, user } = ctx;
   // O resumo do evento é público; todo o resto exige login.
   if (!user && !(request.method === 'GET' && params.action === 'summary')) return fail(401, 'Entre para continuar.');
   const { id, action } = params;
   if (!UUID.test(id)) return fail(400, 'Evento inválido.');
-  const [ev] = await sql`select id, status from events where id = ${id}`;
+  const [ev] = await sql`select id, status, stream_url, to_char(event_date, 'YYYY-MM-DD') as day from events where id = ${id}`;
   if (!ev) return fail(404, 'Evento não encontrado.');
 
   if (request.method === 'GET' && action === 'checkins') {
@@ -116,13 +118,28 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const url = raw ? normalizeStreamUrl(raw) : null;
     if (raw && !url) return fail(400, 'Link inválido. Cole o endereço completo da transmissão (começando com https://).');
     await sql`update events set stream_url = ${url} where id = ${id}`;
+    if (url && url !== ev.stream_url) {
+      fire(ctx, () => toTopic(ctx, 'event', {
+        title: 'Transmissão no ar 📺', body: `O link da transmissão do evento de ${fmtDay(ev.day)} já está disponível.`, ir: 'inicio', tag: `transmissao-${id}`,
+      }, { except: [user.id] }));
+    }
     return json({ ok: true, url });
   }
 
   if (action === 'rsvp') {
     if (!['scheduled', 'checkin_open'].includes(ev.status)) return fail(409, 'As confirmações fecham quando o evento começa.');
     if (body.going === false) await sql`delete from event_rsvps where event_id = ${id} and player_id = ${user.id}`;
-    else await sql`insert into event_rsvps (event_id, player_id) values (${id}, ${user.id}) on conflict do nothing`;
+    else {
+      const added = await sql`insert into event_rsvps (event_id, player_id) values (${id}, ${user.id}) on conflict do nothing returning player_id`;
+      if (added.length) {
+        fire(ctx, async () => {
+          const [c] = await sql`select count(*)::int as n from event_rsvps where event_id = ${id}`;
+          await toAdmins(ctx, {
+            title: 'Nova confirmação ✋', body: `${user.name} vai ao evento de ${fmtDay(ev.day)}. ${c.n} ${c.n === 1 ? 'confirmado' : 'confirmados'}.`, ir: 'inicio', tag: `rsvp-${id}`,
+          }, { except: [user.id] });
+        });
+      }
+    }
     return json({ ok: true });
   }
 
@@ -172,7 +189,11 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const done = await sql`update events set status = 'in_progress', started_at = now()
                            where id = ${id} and status in ('scheduled', 'checkin_open')
                              and not exists (select 1 from events where status = 'in_progress') returning id`;
-    return done.length ? json({ ok: true }) : fail(409, 'Já existe um evento em andamento, ou este não pode ser iniciado agora.');
+    if (!done.length) return fail(409, 'Já existe um evento em andamento, ou este não pode ser iniciado agora.');
+    fire(ctx, () => toTopic(ctx, 'event', {
+      title: 'Check-in aberto 🏐', body: `O evento de ${fmtDay(ev.day)} começou. Faça o seu check-in!`, ir: 'inicio', tag: `evento-${id}`,
+    }, { except: [user.id] }));
+    return json({ ok: true });
   }
 
   if (action === 'finish') {
@@ -180,7 +201,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const done = await sql`update events set status = 'finished', finished_at = now()
                            where id = ${id} and status = 'in_progress' returning id`;
     if (!done.length) return fail(409, 'O evento não está em andamento.');
-    await openPollsForEvent(sql, id, 24);
+    await openPollsForEvent(sql, id, 24, ctx);
     return json({ ok: true });
   }
 
@@ -190,7 +211,26 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     if (reason.length < 3) return fail(400, 'Informe o motivo do cancelamento.');
     const done = await sql`update events set status = 'cancelled', cancel_reason = ${reason}, cancelled_at = now()
                            where id = ${id} and status in ('scheduled', 'checkin_open', 'in_progress') returning id`;
-    return done.length ? json({ ok: true }) : fail(409, 'Este evento não pode ser cancelado.');
+    if (!done.length) return fail(409, 'Este evento não pode ser cancelado.');
+    fire(ctx, () => toTopic(ctx, 'event', {
+      title: 'Evento cancelado ❌', body: `${fmtDay(ev.day)}: ${reason}`, ir: 'inicio', tag: `evento-${id}`,
+    }, { except: [user.id] }));
+    return json({ ok: true });
+  }
+
+  // Cutuca quem confirmou presença e ainda não fez check-in (só o admin, evento em andamento).
+  if (action === 'notify-pending') {
+    if (!can(user, 'admin')) return fail(403, 'Só o admin avisa os confirmados.');
+    if (ev.status !== 'in_progress') return fail(409, 'O evento não está em andamento.');
+    const ids = await sql`
+      select r.player_id as id from event_rsvps r join players p on p.id = r.player_id
+      where r.event_id = ${id} and p.active
+        and not exists (select 1 from checkins c where c.event_id = r.event_id and c.player_id = r.player_id)
+        and not exists (select 1 from checkin_blocks b where b.event_id = r.event_id and b.player_id = r.player_id)`;
+    const r = await toPlayers(ctx, 'event', ids.map((x) => x.id), {
+      title: 'Estamos te esperando! 🏐', body: 'O evento já começou e você confirmou presença. Faça o seu check-in!', ir: 'inicio', tag: `evento-${id}`,
+    });
+    return json({ ...r, pending: ids.length });
   }
   return fail(404, 'Não encontrado.');
 });

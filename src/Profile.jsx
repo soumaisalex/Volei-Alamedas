@@ -6,6 +6,8 @@ import QrAdmin from './QrAdmin.jsx';
 import StatsAdmin from './StatsAdmin.jsx';
 import DonationAdmin from './DonationAdmin.jsx';
 import ShareCard from './ShareCard.jsx';
+import Notificacoes from './Notificacoes.jsx';
+import PushAdmin from './PushAdmin.jsx';
 import { playerCard, trophyCard } from './cards.js';
 
 // Recorta ao centro e reduz para um JPEG quadrado leve (~30 KB).
@@ -105,8 +107,9 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
         ) : <p className="muted">Os troféus das enquetes aparecem aqui.</p>}
       </section>
 
+      {mine && <Notificacoes api={api} user={user} />}
       {mine && user.role !== 'player' && <QrAdmin />}
-      {mine && user.role === 'admin' && <><Admin api={api} /><ContentAdmin api={api} /><DonationAdmin api={api} /><StatsAdmin api={api} /></>}
+      {mine && user.role === 'admin' && <><Admin api={api} /><PushAdmin api={api} /><ContentAdmin api={api} /><DonationAdmin api={api} /><StatsAdmin api={api} /></>}
       {pwdOpen && <PasswordModal api={api} hasPassword={!!user?.has_password} onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); onSaved?.(); }} />}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
     </main>
