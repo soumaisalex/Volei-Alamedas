@@ -6,7 +6,7 @@ export const onRequest = handle(async ({ request, sql, user }) => {
   if (!user) return fail(401, 'Entre para continuar.');
   if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores avaliam os jogadores.');
   if (request.method === 'GET') {
-    return json(await sql`
+    const rows = await sql`
       select p.id, p.name, p.photo_url, m.rating as mine, a.avg, a.n
       from players p
       left join player_ratings m on m.player_id = p.id and m.rater_id = ${user.id}
@@ -14,7 +14,8 @@ export const onRequest = handle(async ({ request, sql, user }) => {
         select avg(r.rating)::float8 as avg, count(*)::int as n from player_ratings r
         join players o on o.id = r.rater_id and o.active and o.role in ('operator', 'admin')
         where r.player_id = p.id) a on true
-      where p.active order by p.name`);
+      where p.active order by p.name`;
+    return json(can(user, 'admin') ? rows : rows.map(({ n, ...r }) => r)); // a quantidade de avaliações é só do admin
   }
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
   const b = await readBody(request);

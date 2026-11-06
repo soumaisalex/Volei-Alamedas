@@ -110,7 +110,7 @@ export default function Profile({ api, user, playerId, onBack, onSaved }) {
 
       {mine && <Notificacoes api={api} user={user} />}
       {mine && user.role !== 'player' && <QrAdmin />}
-      {mine && user.role !== 'player' && <Avaliacao api={api} />}
+      {mine && user.role !== 'player' && <Avaliacao api={api} user={user} />}
       {mine && user.role === 'admin' && <><Admin api={api} /><PushAdmin api={api} /><ContentAdmin api={api} /><DonationAdmin api={api} /><StatsAdmin api={api} /></>}
       {pwdOpen && <PasswordModal api={api} hasPassword={!!user?.has_password} onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); onSaved?.(); }} />}
       {card && <ShareCard card={card} onClose={() => setCard(null)} />}
