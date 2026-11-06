@@ -90,22 +90,27 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     return json({ ok: true });
   }
 
-  // Sorteio equilibrado entre os times que já estão na fila. Sem `apply`: só devolve a prévia. Com `apply`: grava o plano mostrado.
+  // Sorteio equilibrado. Com times na fila: redistribui o elenco entre eles. Sem nenhum time na fila: cria os times.
+  // Sem `apply`: só devolve a prévia. Com `apply`: grava o plano mostrado.
   if (action === 'draw') {
     const sc = await drawScope(sql, id);
-    if (!sc.teams.length) return fail(409, 'Não há times na fila para sortear.');
+    const create = !sc.teams.length;
     if (!sc.pool.length) return fail(409, 'Ninguém com check-in disponível para sortear.');
-    const size = Number.isInteger(b.size) && b.size >= 2 && b.size <= 6 ? b.size : sc.common;
-    if (!size) return fail(409, 'Monte ao menos um time: o tamanho do sorteio vem dos times já montados.');
+    const size = Number.isInteger(b.size) && b.size >= 2 && b.size <= 6 ? b.size : create ? 0 : sc.common;
+    if (!size) return json({ ask: true, create }); // o tamanho do time precisa ser informado
     const stale = () => fail(409, 'A quadra mudou desde a prévia. Sorteie de novo.');
+    const poolIds = new Set(sc.pool.map((p) => p.id));
+    const [{ n: made, q: lastPos }] = await sql`select count(*)::int as n, coalesce(max(queue_pos), 0)::int as q from teams where event_id = ${id}`;
+    const nameOf = (i) => `Time ${String.fromCharCode(65 + ((made + i) % 26))}`;
+    const slots = create ? Array.from({ length: Math.ceil(sc.pool.length / size) }, (_, i) => ({ id: `novo-${i}`, name: nameOf(i) })) : sc.teams;
 
     if (!b.apply) {
-      const plan = planDraw(sc.pool, sc.teams.map((t) => t.id), size);
+      const plan = planDraw(sc.pool, slots.map((t) => t.id), size);
       const by = Object.fromEntries(sc.pool.map((p) => [p.id, p]));
       const view = (pid) => ({ id: pid, name: by[pid].name, photo_url: by[pid].photo_url });
       return json({
-        size,
-        teams: sc.teams.map((t, i) => {
+        size, create,
+        teams: slots.map((t, i) => {
           const ids = plan.teams[i].player_ids;
           return { id: t.id, name: t.name, players: ids.map(view), power: ids.length ? Math.round((100 * ids.reduce((a, pid) => a + strength(by[pid]), 0)) / ids.length) : null };
         }),
@@ -113,9 +118,31 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       });
     }
 
-    // Aplicar: confere se o plano ainda vale (mesmos times e mesmas pessoas) antes de mexer em qualquer coisa.
-    const plan = Array.isArray(b.plan) ? b.plan : [], left = new Set(Array.isArray(b.leftover) ? b.leftover : []);
-    const teamIds = new Set(sc.teams.map((t) => t.id)), poolIds = new Set(sc.pool.map((p) => p.id));
+    const plan = Array.isArray(b.plan) ? b.plan : [];
+    if (create) {
+      // Sem times: cria os times do plano (Time A, B…) no fim da fila, já com o elenco.
+      const seen = new Set();
+      if (plan.length !== slots.length) return stale();
+      for (const t of plan) {
+        if (!Array.isArray(t.player_ids) || !t.player_ids.length || t.player_ids.length > size) return stale();
+        for (const pid of t.player_ids) { if (!poolIds.has(pid) || seen.has(pid)) return stale(); seen.add(pid); }
+      }
+      if (seen.size !== sc.pool.length) return stale();
+      const tids = plan.map(() => crypto.randomUUID());
+      const members = plan.flatMap((t, i) => t.player_ids.map((pid) => [tids[i], pid]));
+      await sql.transaction([
+        sql`insert into teams (id, event_id, name, queue_pos, status)
+            select x.i, ${id}::uuid, x.n, ${lastPos}::int + x.q, 'active'::team_status
+            from unnest(${tids}::uuid[], ${plan.map((_, i) => nameOf(i))}::text[], ${plan.map((_, i) => i + 1)}::int[]) as x(i, n, q)`,
+        sql`insert into team_members (team_id, event_id, player_id)
+            select x.t, ${id}::uuid, x.p from unnest(${members.map((m) => m[0])}::uuid[], ${members.map((m) => m[1])}::uuid[]) as x(t, p)`,
+      ]);
+      return json({ ok: true });
+    }
+
+    // Aplicar nos times existentes: confere se o plano ainda vale (mesmos times e mesmas pessoas) antes de mexer em qualquer coisa.
+    const left = new Set(Array.isArray(b.leftover) ? b.leftover : []);
+    const teamIds = new Set(sc.teams.map((t) => t.id));
     if (new Set(plan.map((t) => t?.team_id)).size !== teamIds.size || !plan.every((t) => teamIds.has(t.team_id) && Array.isArray(t.player_ids))) return stale();
     const want = new Map();
     for (const t of plan) for (const pid of t.player_ids) { if (!poolIds.has(pid) || want.has(pid) || left.has(pid)) return stale(); want.set(pid, t.team_id); }

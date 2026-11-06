@@ -247,7 +247,7 @@ export default function Court({ api, user }) {
             ))}
             {!queue.length && <p className="muted">Nenhum time na fila. Toque em “Novo time”.</p>}
             {ops && <button className="btn" onClick={() => run('team-create')}>Novo time</button>}
-            {ops && !!queue.length && <button className="btn" onClick={() => { busy.current = true; setDrawing(true); }}>Sortear times</button>}
+            {ops && (queue.length > 0 || free.length > 0) && <button className="btn" onClick={() => { busy.current = true; setDrawing(true); }}>{queue.length ? 'Sortear times' : 'Sortear e criar times'}</button>}
           </div>
         </section>
 
