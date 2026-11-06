@@ -111,6 +111,23 @@ export const onRequest = handle(async (ctx) => {
     return json({ ok: true });
   }
 
+  // Excluir o evento de vez (ex.: evento de teste). Só o admin, com os 4 últimos números do celular dele.
+  // Apaga partidas, times, check-ins, enquetes e troféus do evento; ranking e estatísticas passam a ignorá-lo.
+  if (action === 'delete') {
+    if (!can(user, 'admin')) return fail(403, 'Só o admin exclui eventos.');
+    const [me] = await sql`select phone from players where id = ${user.id}`;
+    const digits = String(body.phone4 || '').replace(/\D/g, '');
+    if (digits.length !== 4 || digits !== me.phone.slice(-4)) return fail(403, 'Os 4 últimos números do celular não conferem.');
+    await sql.transaction([
+      sql`delete from awards where event_id = ${id}`,
+      sql`delete from polls where event_id = ${id}`,
+      sql`delete from matches where event_id = ${id}`,
+      sql`delete from teams where event_id = ${id}`,
+      sql`delete from events where id = ${id}`,
+    ]);
+    return json({ ok: true });
+  }
+
   // Link da transmissão: só o admin cadastra; só quem está logado recebe o link.
   if (action === 'stream') {
     if (!can(user, 'admin')) return fail(403, 'Só o admin cadastra o link da transmissão.');

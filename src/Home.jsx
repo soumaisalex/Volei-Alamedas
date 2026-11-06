@@ -11,6 +11,7 @@ import { InfoCards } from './InfoCards.jsx';
 import { DonationCard } from './Donation.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 import { disablePush } from './push.js';
+import DeleteEvent from './DeleteEvent.jsx';
 
 // Ações sobre uma pessoa que está na quadra.
 function PresentSheet({ p, ops, onLeave, onRemove, onClose }) {
@@ -141,6 +142,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
           {ops && live && <button className="btn" onClick={() => askOk('Encerrar o evento?', 'O evento termina e as votações das enquetes abrem por 24 horas. Não será possível continuar as partidas.', 'Encerrar evento', () => act('finish'), true)}>Encerrar evento</button>}
           {admin && <button className="btn ghost" onClick={() => setStreamEdit(true)}>{cur.stream_url ? 'Editar link da transmissão' : 'Definir link da transmissão'}</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
+          {user.role === 'admin' && <DeleteEvent api={api} eventId={cur.id} onDeleted={load} />}
         </section>
       )}
 

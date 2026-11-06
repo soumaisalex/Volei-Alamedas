@@ -7,6 +7,7 @@ import { StreamLink, StreamEditor } from './Stream.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
 import { eventCard } from './cards.js';
 import { STATUS } from './shared.jsx';
+import DeleteEvent from './DeleteEvent.jsx';
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -157,6 +158,7 @@ export default function EventDetail({ api, user, id, onBack }) {
           </div>
         ) : <button className="btn danger" onClick={() => setCancel(true)}>Cancelar evento</button>
       )}
+      {user?.role === 'admin' && <DeleteEvent api={api} eventId={id} onDeleted={onBack} />}
       {streamEdit && <StreamEditor api={api} eventId={id} url={s.stream_url} onClose={() => setStreamEdit(false)} onSaved={() => { setStreamEdit(false); load(); }} />}
       {roster && <Roster m={roster} admin={user?.role === 'admin'} onClose={() => setRoster(null)}
         onFix={() => { setFix(roster); setRoster(null); }} onDelete={() => { setDel(roster); setRoster(null); }} />}
