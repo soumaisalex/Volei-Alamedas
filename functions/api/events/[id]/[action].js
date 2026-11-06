@@ -213,6 +213,25 @@ export const onRequest = handle(async (ctx) => {
     return json({ ok: true });
   }
 
+  // Desfazer um início por engano: volta para "agendado". Os "Eu vou" ficam; check-ins e times criados depois do início são apagados.
+  // Só vale enquanto nenhuma partida foi registrada (depois disso há histórico de verdade).
+  if (action === 'unstart') {
+    if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores desfazem o início do evento.');
+    if (ev.status !== 'in_progress') return fail(409, 'O evento não está em andamento.');
+    const [m] = await sql`select count(*)::int as n from matches where event_id = ${id}`;
+    if (m.n) return fail(409, 'Já há partidas neste evento, então o início não pode ser desfeito.');
+    await sql.transaction([
+      sql`delete from teams where event_id = ${id}`,
+      sql`delete from checkins where event_id = ${id}`,
+      sql`delete from checkin_blocks where event_id = ${id}`,
+      sql`update events set status = 'scheduled', started_at = null where id = ${id} and status = 'in_progress'`,
+    ]);
+    fire(ctx, () => toTopic(ctx, 'event', {
+      title: 'Engano no início do evento', body: `O evento de ${fmtDay(ev.day)} ainda não começou. Ignore o aviso de check-in.`, ir: 'inicio', tag: `evento-${id}`,
+    }, { except: [user.id] }));
+    return json({ ok: true });
+  }
+
   if (action === 'finish') {
     if (!can(user, 'admin', 'operator')) return fail(403, 'Só operadores encerram o evento.');
     const done = await sql`update events set status = 'finished', finished_at = now()

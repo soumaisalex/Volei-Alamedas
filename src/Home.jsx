@@ -139,6 +139,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
             </>
           )}
           {ops && !live && <button className="btn" onClick={() => askOk('Iniciar o evento?', 'O check-in será aberto para todos. O tamanho dos times é livre: monte as linhas como quiser na tela da Quadra.', 'Iniciar evento', () => act('start'))}>Iniciar evento e abrir check-in</button>}
+          {ops && live && <button className="btn ghost" onClick={() => askOk('Desfazer o início do evento?', 'O evento volta para agendado. Os check-ins e os times feitos desde o início são apagados; os “Eu vou” continuam. Só é possível enquanto nenhuma partida foi iniciada.', 'Desfazer início', () => act('unstart'), true)}>Desfazer início do evento</button>}
           {ops && live && <button className="btn" onClick={() => askOk('Encerrar o evento?', 'O evento termina e as votações das enquetes abrem por 24 horas. Não será possível continuar as partidas.', 'Encerrar evento', () => act('finish'), true)}>Encerrar evento</button>}
           {admin && <button className="btn ghost" onClick={() => setStreamEdit(true)}>{cur.stream_url ? 'Editar link da transmissão' : 'Definir link da transmissão'}</button>}
           {user.role === 'admin' && <button className="btn danger" onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}>Cancelar evento</button>}
