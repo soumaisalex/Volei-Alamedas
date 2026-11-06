@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { nameSize } from './Person.jsx';
 import FreeCourt from './FreeCourt.jsx';
 import Confirm from './Confirm.jsx';
+import Sorteio from './Sorteio.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 
@@ -102,6 +103,7 @@ export default function Court({ api, user }) {
   const [cancelAsk, setCancelAsk] = useState(false);
   const [fixing, setFixing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [drawing, setDrawing] = useState(false);
   const lastDrag = useRef(0); // evita tratar o fim de um arrasto como toque
   const busy = useRef(false); // pausa a atualização automática enquanto arrasta ou digita o placar final
   const sensors = useSensors(
@@ -245,6 +247,7 @@ export default function Court({ api, user }) {
             ))}
             {!queue.length && <p className="muted">Nenhum time na fila. Toque em “Novo time”.</p>}
             {ops && <button className="btn" onClick={() => run('team-create')}>Novo time</button>}
+            {ops && !!queue.length && <button className="btn" onClick={() => { busy.current = true; setDrawing(true); }}>Sortear times</button>}
           </div>
         </section>
 
@@ -294,6 +297,10 @@ export default function Court({ api, user }) {
       {deleting && (
         <Confirm title="Excluir esta partida?" text={`${deleting.a} x ${deleting.b} (${deleting.score_a} a ${deleting.score_b}) deixa de contar no ranking e nos perfis. Não dá para desfazer. A fila não é alterada.`} label="Excluir partida" danger
           onCancel={() => setDeleting(null)} onOk={() => { const m = deleting; setDeleting(null); call(`/matches/${m.id}/delete`, {}); }} />
+      )}
+      {drawing && (
+        <Sorteio api={api} eid={eid} onClose={() => { busy.current = false; setDrawing(false); }}
+          onDone={() => { busy.current = false; setDrawing(false); load().catch(() => {}); }} />
       )}
       {moving && <MoveSheet p={moving} teams={queue} onMove={moveTo} onClose={closeMove} />}
     </main>

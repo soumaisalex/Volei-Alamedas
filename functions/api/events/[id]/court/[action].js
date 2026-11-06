@@ -1,5 +1,6 @@
 import { handle, json, fail, can, readBody, UUID } from '../../../../_lib/util.js';
-import { loadCourt, dissolveTeams } from '../../../../_lib/court.js';
+import { loadCourt, dissolveTeams, drawScope } from '../../../../_lib/court.js';
+import { planDraw, strength } from '../../../../_lib/draw.js';
 
 export const onRequest = handle(async ({ request, params, sql, user }) => {
   if (!user) return fail(401, 'Entre para continuar.');
@@ -86,6 +87,58 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     const order = q.map((t) => t.id);
     [order[i], order[j]] = [order[j], order[i]];
     await sql.transaction(order.map((tid, k) => sql`update teams set queue_pos = ${k + 1} where id = ${tid}`));
+    return json({ ok: true });
+  }
+
+  // Sorteio equilibrado entre os times que já estão na fila. Sem `apply`: só devolve a prévia. Com `apply`: grava o plano mostrado.
+  if (action === 'draw') {
+    const sc = await drawScope(sql, id);
+    if (!sc.teams.length) return fail(409, 'Não há times na fila para sortear.');
+    if (!sc.pool.length) return fail(409, 'Ninguém com check-in disponível para sortear.');
+    const size = Number.isInteger(b.size) && b.size >= 2 && b.size <= 6 ? b.size : sc.common;
+    if (!size) return fail(409, 'Monte ao menos um time: o tamanho do sorteio vem dos times já montados.');
+    const stale = () => fail(409, 'A quadra mudou desde a prévia. Sorteie de novo.');
+
+    if (!b.apply) {
+      const plan = planDraw(sc.pool, sc.teams.map((t) => t.id), size);
+      const by = Object.fromEntries(sc.pool.map((p) => [p.id, p]));
+      const view = (pid) => ({ id: pid, name: by[pid].name, photo_url: by[pid].photo_url });
+      return json({
+        size,
+        teams: sc.teams.map((t, i) => {
+          const ids = plan.teams[i].player_ids;
+          return { id: t.id, name: t.name, players: ids.map(view), power: ids.length ? Math.round((100 * ids.reduce((a, pid) => a + strength(by[pid]), 0)) / ids.length) : null };
+        }),
+        leftover: plan.leftover.map(view),
+      });
+    }
+
+    // Aplicar: confere se o plano ainda vale (mesmos times e mesmas pessoas) antes de mexer em qualquer coisa.
+    const plan = Array.isArray(b.plan) ? b.plan : [], left = new Set(Array.isArray(b.leftover) ? b.leftover : []);
+    const teamIds = new Set(sc.teams.map((t) => t.id)), poolIds = new Set(sc.pool.map((p) => p.id));
+    if (new Set(plan.map((t) => t?.team_id)).size !== teamIds.size || !plan.every((t) => teamIds.has(t.team_id) && Array.isArray(t.player_ids))) return stale();
+    const want = new Map();
+    for (const t of plan) for (const pid of t.player_ids) { if (!poolIds.has(pid) || want.has(pid) || left.has(pid)) return stale(); want.set(pid, t.team_id); }
+    if (![...left].every((pid) => poolIds.has(pid)) || sc.pool.some((p) => !want.has(p.id) && !left.has(p.id))) return stale();
+
+    const open = await sql`select id, team_id, player_id from team_members
+                           where event_id = ${id} and left_at is null and team_id = any(${[...teamIds]}::uuid[])`;
+    const close = open.filter((r) => want.get(r.player_id) !== r.team_id);
+    const kept = new Set(open.filter((r) => want.get(r.player_id) === r.team_id).map((r) => r.player_id));
+    const add = [...want].filter(([pid]) => !kept.has(pid));
+    const changed = [...new Set([...close.map((r) => r.team_id), ...add.map(([, tid]) => tid)])];
+    const steps = [];
+    if (close.length) steps.push(sql`update team_members set left_at = now() where id = any(${close.map((r) => r.id)}::uuid[])`);
+    if (add.length) {
+      steps.push(sql`insert into team_members (team_id, event_id, player_id)
+                     select x.t, ${id}::uuid, x.p from unnest(${add.map(([, tid]) => tid)}::uuid[], ${add.map(([pid]) => pid)}::uuid[]) as x(t, p)`);
+    }
+    steps.push(sql`update teams set
+        status = case when exists (select 1 from team_members m where m.team_id = teams.id and m.left_at is null)
+                      then 'active'::team_status else 'forming'::team_status end,
+        win_streak = case when id = any(${changed}::uuid[]) then 0 else win_streak end
+      where id = any(${[...teamIds]}::uuid[])`);
+    await sql.transaction(steps);
     return json({ ok: true });
   }
 
