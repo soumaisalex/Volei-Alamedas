@@ -65,11 +65,14 @@ export async function drawScope(sql, eventId) {
     sql`select count(*)::int as n from team_members tm
         join checkins c on c.event_id = tm.event_id and c.player_id = tm.player_id
         where tm.event_id = ${eventId} and tm.left_at is null and c.left_at is null group by tm.team_id`,
-    sql`select p.id, p.name, p.photo_url, coalesce(ps.wins, 0)::int as wins, coalesce(ps.matches_played, 0)::int as matches, p.rating,
+    sql`select p.id, p.name, p.photo_url, coalesce(ps.wins, 0)::int as wins, coalesce(ps.matches_played, 0)::int as matches, coalesce(rt.avg, 2) as rating,
                (tm.team_id is null) as free
         from checkins c join players p on p.id = c.player_id
         left join team_members tm on tm.event_id = c.event_id and tm.player_id = c.player_id and tm.left_at is null
         left join player_stats ps on ps.player_id = p.id
+        left join lateral (select avg(r.rating)::float8 as avg from player_ratings r
+                           join players o on o.id = r.rater_id and o.active and o.role in ('operator', 'admin')
+                           where r.player_id = p.id) rt on true
         where c.event_id = ${eventId} and c.left_at is null and (tm.team_id is null or tm.team_id = any(${ids}::uuid[]))`,
   ]);
   return { teams, pool, common: commonSize(sizes.map((r) => r.n)) };

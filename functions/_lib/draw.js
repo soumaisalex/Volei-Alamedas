@@ -2,12 +2,12 @@
 // Cada time cheio recebe 1 forte, 2 fracos e o resto do meio (times de 4: 2 fracos + 2 fortes; de 5: 2 fracos + 3 fortes).
 // O time incompleto recebe 1 forte e o restante do meio. Quem sobra da capacidade fica sem time.
 
-// Força no sorteio: parte da avaliação em estrelas e vai cedendo ao desempenho real conforme a pessoa joga.
-// A estrela vale WEIGHT partidas "virtuais" (1★ = 20% ... 5★ = 80%); sem avaliação, 50%.
+// Força no sorteio: parte da nota em estrelas (média dos operadores; 2 se ninguém avaliou) e vai cedendo ao desempenho real.
+// A nota vale WEIGHT partidas "virtuais": 1★ = 20% ... 5★ = 80%, linear (4,2★ = 68%). Sem nota, 50%.
 // A quadra livre não usa isto: ela segue só os dados do sistema (src/lab.js).
 const WEIGHT = 12;
-const PRIOR = [0.5, 0.2, 0.35, 0.5, 0.65, 0.8];
-export const strength = (p) => (p.wins + WEIGHT * (PRIOR[p.rating] ?? 0.5)) / (p.matches + WEIGHT);
+const prior = (stars) => (Number.isFinite(stars) ? 0.05 + 0.15 * stars : 0.5);
+export const strength = (p) => (p.wins + WEIGHT * prior(p.rating)) / (p.matches + WEIGHT);
 
 const shuffle = (a) => { const l = [...a]; for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; };
 const byPower = (a) => shuffle(a).sort((x, y) => strength(y) - strength(x)); // empates saem variados
