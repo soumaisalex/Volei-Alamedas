@@ -65,7 +65,7 @@ export async function drawScope(sql, eventId) {
     sql`select count(*)::int as n from team_members tm
         join checkins c on c.event_id = tm.event_id and c.player_id = tm.player_id
         where tm.event_id = ${eventId} and tm.left_at is null and c.left_at is null group by tm.team_id`,
-    sql`select p.id, p.name, p.photo_url, coalesce(ps.wins, 0)::int as wins, coalesce(ps.matches_played, 0)::int as matches,
+    sql`select p.id, p.name, p.photo_url, coalesce(ps.wins, 0)::int as wins, coalesce(ps.matches_played, 0)::int as matches, p.rating,
                (tm.team_id is null) as free
         from checkins c join players p on p.id = c.player_id
         left join team_members tm on tm.event_id = c.event_id and tm.player_id = c.player_id and tm.left_at is null
