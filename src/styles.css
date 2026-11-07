@@ -104,7 +104,7 @@ body { padding-bottom: 5.5rem; }
 .tile { display: grid; gap: .1rem; text-align: center; padding: .9rem .5rem; }
 .tile strong { font: 400 2.2rem var(--display); color: var(--num); }
 .emoji { font-size: 1.6rem; }
-.rank { font: 400 1.3rem var(--display); width: 2rem; text-align: center; color: var(--num); }
+.rank { font: 400 1.3rem var(--display); flex: none; min-width: 2.4rem; text-align: center; color: var(--num); white-space: nowrap; overflow-wrap: normal; }
 .score-line { white-space: nowrap; }
 .chip.on { background: var(--forest); color: #fff; border-color: var(--forest); }
 label.btn { display: grid; place-items: center; cursor: pointer; }
