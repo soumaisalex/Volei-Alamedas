@@ -1,11 +1,42 @@
 import { useCallback, useEffect, useState } from 'react';
 import Person from './Person.jsx';
 import { maskPhone } from './shared.jsx';
+import { toJpeg } from './photo.js';
 
 const ROLE = { admin: 'Admin', operator: 'Operador', player: '' };
 
-// Opções de uma pessoa, em janela: tornar operador, novo código de acesso, remover.
-function PersonSheet({ p, issued, err, onChange, onClose }) {
+// Edição de nome, celular e foto de uma pessoa (só admin).
+function EditForm({ p, onSave, onPhoto, onCancel }) {
+  const [name, setName] = useState(p.name);
+  const [phone, setPhone] = useState(maskPhone(p.phone || ''));
+  const [busy, setBusy] = useState(false);
+  const pick = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    await onPhoto(file);
+    setBusy(false);
+  };
+  const ok = name.trim().length >= 2 && phone.length === 15;
+  return (
+    <div className="stack">
+      <label className="btn" style={{ justifySelf: 'start' }}>
+        {busy ? 'Enviando…' : 'Trocar foto'}
+        <input type="file" accept="image/*" hidden disabled={busy} onChange={pick} />
+      </label>
+      <input placeholder="Nome" autoComplete="off" maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+      <input inputMode="tel" placeholder="(00) 00000-0000" autoComplete="off" value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} />
+      <p className="muted">O celular é usado no login (4 últimos dígitos) e não pode repetir o de outra pessoa.</p>
+      <button className="btn primary" disabled={busy || !ok} onClick={() => onSave({ name: name.trim(), phone })}>Salvar</button>
+      <button className="btn ghost" onClick={onCancel}>Cancelar</button>
+    </div>
+  );
+}
+
+// Opções de uma pessoa, em janela: editar dados, tornar operador, novo código de acesso, remover.
+function PersonSheet({ p, issued, err, onChange, onPhoto, onClose }) {
+  const [editing, setEditing] = useState(false);
   const [sure, setSure] = useState(false);
   const [sureOff, setSureOff] = useState(false);
   useEffect(() => {
@@ -35,7 +66,10 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
           </div>
         )}
 
-        {p.active && p.role === 'player' && (
+        {p.role !== 'admin' && !editing && <button className="btn" onClick={() => setEditing(true)}>Editar nome, celular e foto</button>}
+        {editing && <EditForm p={p} onPhoto={onPhoto} onCancel={() => setEditing(false)} onSave={(d) => onChange(d).then((ok) => ok && setEditing(false))} />}
+
+        {!editing && p.active && p.role === 'player' && (
           <>
             <p className="muted">Operadores montam times, controlam a fila e o placar. Ao promover, a pessoa passa a entrar com senha própria e recebe um código de acesso de 24 horas.</p>
             <button className="btn primary" onClick={() => onChange({ role: 'operator' })}>Tornar operador</button>
@@ -47,7 +81,7 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
             )}
           </>
         )}
-        {p.active && p.role === 'operator' && (
+        {!editing && p.active && p.role === 'operator' && (
           <>
             <p className="muted">Gerar um novo código apaga a senha atual e desconecta a pessoa. Use se ela esqueceu a senha ou ainda não conseguiu entrar.</p>
             <button className="btn danger" onClick={() => onChange({ reset: true })}>Novo código de acesso</button>
@@ -57,13 +91,13 @@ function PersonSheet({ p, issued, err, onChange, onClose }) {
           </>
         )}
         {p.role === 'admin' && <p className="muted">O administrador não pode ser alterado por aqui.</p>}
-        {!p.active && (
+        {!editing && !p.active && (
           <>
             <p className="muted">Este jogador não aparece no login nem no check-in, mas continua no ranking, nas estatísticas e nos resultados.</p>
             <button className="btn primary" onClick={() => onChange({ active: true }, true)}>Reativar jogador</button>
           </>
         )}
-        {p.active && p.role !== 'admin' && (
+        {!editing && p.active && p.role !== 'admin' && (
           <>
             <p className="muted">Inativar tira a pessoa do login e do check-in. Ela continua no ranking, nas estatísticas e nos resultados, e pode ser reativada depois.</p>
             <button className="btn danger" onClick={() => (sureOff ? onChange({ active: false }, true) : setSureOff(true))}>
@@ -96,13 +130,22 @@ export default function Admin({ api }) {
       if (r.code) setIssued(r.code);
       await load();
       if (closeAfter) setSel(null);
+      return true;
+    } catch (e) { setErr(e.message); return false; }
+  };
+  const photo = async (file) => {
+    setErr('');
+    try {
+      const res = await fetch(`/api/profile/${picked.id}/photo`, { method: 'PUT', headers: { 'content-type': 'image/jpeg' }, body: await toJpeg(file) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Não foi possível enviar a foto.');
+      await load();
     } catch (e) { setErr(e.message); }
   };
 
   return (
     <details className="card">
       <summary><span className="grow">Operadores</span></summary>
-      <p className="muted">Toque numa pessoa para ver as opções. Operadores entram com senha própria.</p>
+      <p className="muted">Toque numa pessoa para ver as opções e editar nome, celular e foto. Operadores entram com senha própria.</p>
       {err && !picked && <p className="err" role="alert">{err}</p>}
       <div className="pick-grid">
         {active.map((p) => (
@@ -123,7 +166,7 @@ export default function Admin({ api }) {
           </div>
         </>
       )}
-      {picked && <PersonSheet key={picked.id} p={picked} issued={issued} err={err} onChange={change} onClose={() => setSel(null)} />}
+      {picked && <PersonSheet key={picked.id} p={picked} issued={issued} err={err} onChange={change} onPhoto={photo} onClose={() => setSel(null)} />}
     </details>
   );
 }
