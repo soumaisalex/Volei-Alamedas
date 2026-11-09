@@ -37,13 +37,14 @@ function EditForm({ p, onSave, onPhoto, onCancel }) {
 // Opções de uma pessoa, em janela: editar dados, tornar operador, novo código de acesso, remover.
 function PersonSheet({ p, issued, err, onChange, onPhoto, onClose }) {
   const [editing, setEditing] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const [sure, setSure] = useState(false);
   const [sureOff, setSureOff] = useState(false);
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const onKey = (e) => e.key === 'Escape' && (zoom ? setZoom(false) : onClose());
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, zoom]);
 
   const status = !p.active ? 'Inativo, fora do login e do check-in'
     : p.role === 'admin' ? 'Administrador'
@@ -54,7 +55,12 @@ function PersonSheet({ p, issued, err, onChange, onPhoto, onClose }) {
     <div className="overlay" role="presentation" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={`Opções de ${p.name}`} onClick={(e) => e.stopPropagation()}>
         <div className="row">
-          {p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.name[0]}</span>}
+          {p.photo_url ? (
+            <button type="button" aria-label={`Ampliar a foto de ${p.name}`} onClick={() => setZoom(true)}
+              style={{ background: 'none', border: 0, padding: 0, borderRadius: '50%', flex: 'none', display: 'grid', cursor: 'zoom-in' }}>
+              <img className="avatar" src={p.photo_url} alt="" />
+            </button>
+          ) : <span className="avatar">{p.name[0]}</span>}
           <div className="grow"><strong>{p.name}</strong><br />{p.phone && <><span className="phone">{maskPhone(p.phone)}</span><br /></>}<span className="muted">{status}</span></div>
         </div>
         {err && <p className="err" role="alert">{err}</p>}
@@ -107,6 +113,12 @@ function PersonSheet({ p, issued, err, onChange, onPhoto, onClose }) {
         )}
         <button className="btn ghost" onClick={onClose}>Fechar</button>
       </div>
+      {zoom && (
+        <div className="overlay" role="presentation" style={{ zIndex: 60 }} onClick={(e) => { e.stopPropagation(); setZoom(false); }}>
+          <img src={p.photo_url} alt={`Foto de ${p.name}`}
+            style={{ width: 'min(92vw, 80vh)', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: '1rem', background: '#000' }} />
+        </div>
+      )}
     </div>
   );
 }
