@@ -39,6 +39,7 @@ function PersonSheet({ p, issued, err, onChange, onPhoto, onClose }) {
   const [editing, setEditing] = useState(false);
   const [zoom, setZoom] = useState(false);
   const [sure, setSure] = useState(false);
+  const [sureDel, setSureDel] = useState(false);
   const [sureOff, setSureOff] = useState(false);
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && (zoom ? setZoom(false) : onClose());
@@ -101,6 +102,14 @@ function PersonSheet({ p, issued, err, onChange, onPhoto, onClose }) {
           <>
             <p className="muted">Este jogador não aparece no login nem no check-in, mas continua no ranking, nas estatísticas e nos resultados.</p>
             <button className="btn primary" onClick={() => onChange({ active: true }, true)}>Reativar jogador</button>
+            {p.deletable ? (
+              <>
+                <p className="muted">Este jogador nunca participou de nada, então pode ser excluído de vez (foto, senha e notificações vão junto). Não dá para desfazer.</p>
+                <button className="btn danger" onClick={() => (sureDel ? onChange({ remove: true }, true) : setSureDel(true))}>
+                  {sureDel ? 'Toque de novo para excluir' : 'Excluir jogador'}
+                </button>
+              </>
+            ) : <p className="muted">Tem registros no sistema (presença, partidas, votos ou outros), por isso não pode ser excluído.</p>}
           </>
         )}
         {!editing && p.active && p.role !== 'admin' && (

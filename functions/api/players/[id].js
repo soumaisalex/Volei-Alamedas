@@ -1,6 +1,6 @@
 import { handle, json, fail, can, readBody, UUID, issueSetupCode } from '../../_lib/util.js';
 
-// Admin: edita nome e celular, promove/rebaixa operadores, gera códigos de primeiro acesso e inativa/reativa jogadores.
+// Admin: edita nome e celular, exclui jogadores inativos sem histórico, promove/rebaixa operadores, gera códigos de primeiro acesso e inativa/reativa jogadores.
 // Inativar tira a pessoa do login e do check-in, mas preserva ranking, estatísticas e resultados.
 export const onRequest = handle(async ({ request, params, env, sql, user }) => {
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
@@ -36,6 +36,26 @@ export const onRequest = handle(async ({ request, params, env, sql, user }) => {
         sql`delete from sessions where player_id = ${target.id}`,
       ]);
     }
+    return json({ ok: true });
+  }
+  // Excluir de vez: só inativo e sem nenhum registro no sistema. Sessões, foto, notificações e notas saem junto.
+  if (b.remove === true) {
+    if (target.active) return fail(409, 'Inative o jogador antes de excluir.');
+    const [u] = await sql`select (
+      exists (select 1 from checkins where player_id = ${target.id} or checked_in_by = ${target.id} or left_marked_by = ${target.id})
+      or exists (select 1 from team_members where player_id = ${target.id})
+      or exists (select 1 from match_players where player_id = ${target.id})
+      or exists (select 1 from poll_options where player_id = ${target.id})
+      or exists (select 1 from votes where voter_id = ${target.id})
+      or exists (select 1 from awards where player_id = ${target.id})
+      or exists (select 1 from checkin_blocks where player_id = ${target.id} or blocked_by = ${target.id})
+      or exists (select 1 from event_rsvps where player_id = ${target.id})
+      or exists (select 1 from events where created_by = ${target.id})
+      or exists (select 1 from matches where corrected_by = ${target.id})
+      or exists (select 1 from donation_entries where created_by = ${target.id})
+      or exists (select 1 from site_content where updated_by = ${target.id})) as used`;
+    if (u.used) return fail(409, 'Este jogador tem registros no sistema (presença, partidas, votos ou outros) e não pode ser excluído. Ele pode continuar inativo.');
+    await sql`delete from players where id = ${target.id}`;
     return json({ ok: true });
   }
   if (!target.active) return fail(409, 'Reative o jogador primeiro.');
