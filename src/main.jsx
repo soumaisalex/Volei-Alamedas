@@ -1,8 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
-import { applyMode, getMode } from './theme.js';
+import { applyTheme, getTheme } from './theme.js';
 
-applyMode(getMode());
-
+applyTheme(getTheme());
 createRoot(document.getElementById('root')).render(<App />);

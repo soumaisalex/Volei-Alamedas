@@ -1,195 +1,156 @@
-import { useCallback, useEffect, useState } from 'react';
-import Court from './Court.jsx';
-import Ranking from './Ranking.jsx';
-import Home from './Home.jsx';
-import Person from './Person.jsx';
-import Footer from './Footer.jsx';
-import QrCheckin from './QrCheckin.jsx';
-import PasswordModal, { PasswordSuggest } from './PasswordModal.jsx';
-import { Icon } from './icons.jsx';
-import EventDetail from './EventDetail.jsx';
-import { PublicHome } from './Events.jsx';
-import LoginPick from './Login.jsx';
-import { SetupForm } from './Setup.jsx';
-import Enquetes from './Enquetes.jsx';
-import ThemeButton from './ThemeButton.jsx';
-import Profile from './Profile.jsx';
+import { ChevronLeft, ChevronRight, CreditCard, LogOut, Moon, Plus, SlidersHorizontal, Sun, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { api, monthLabel, monthNow, shiftMonth } from './api.js';
+import { TxForm } from './forms.jsx';
+import Cards from './screens/Cards.jsx';
+import Overview from './screens/Overview.jsx';
+import Settings from './screens/Settings.jsx';
+import { applyTheme, getTheme, saveTheme } from './theme.js';
 
-const IR = ['inicio', 'quadra', 'enquetes', 'perfil']; // destinos ao tocar numa notificação
-const OPEN = ['scheduled', 'checkin_open', 'in_progress'];
-const STATUS = { finished: 'Encerrado', cancelled: 'Cancelado', in_progress: 'Em andamento', scheduled: 'Agendado', checkin_open: 'Check-in aberto' };
+const APP_NAME = 'Controle Financeiro';
 
-async function api(path, { body, method } = {}) {
-  const res = await fetch('/api' + path, {
-    method: method || (body ? 'POST' : 'GET'),
-    headers: { 'content-type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Algo deu errado.');
-  return data;
-}
+function Login() {
+  const [mode, setMode] = useState('login');
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const isLogin = mode === 'login';
 
-const maskPhone = (v) => {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  if (d.length > 6) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  if (d.length > 2) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  return d ? `(${d}` : '';
-};
-const fmtDate = (d) =>
-  new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-
-function Avatar({ p }) {
-  return p.photo_url ? <img className="avatar" src={p.photo_url} alt="" /> : <span className="avatar">{p.name[0]}</span>;
-}
-
-function Auth({ onDone, onBack, note }) {
-  const [mode, setMode] = useState('entrar');
-  const [players, setPlayers] = useState([]);
-  const [q, setQ] = useState('');
-  const [pick, setPick] = useState(null);
-  const [last4, setLast4] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [err, setErr] = useState('');
-
-  useEffect(() => { api('/players').then(setPlayers).catch((e) => setErr(e.message)); }, []);
-  const run = async (fn) => { setErr(''); try { await fn(); onDone(); } catch (e) { setErr(e.message); } };
-  const shown = players.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg('');
+    try {
+      await api(`/api/auth/${isLogin ? 'login' : 'register'}`, { method: 'POST', body: form });
+      location.href = '/';
+    } catch (err) {
+      setMsg(err.message);
+      setBusy(false);
+    }
+  }
 
   return (
-    <main className="screen">
-      <div className="theme-row">{onBack && <button className="btn ghost small" onClick={onBack}>Voltar</button>}<ThemeButton /></div>
-      <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
-      {note && <p className="muted">{note}</p>}
-      <div className="tabs">
-        <button className={mode === 'entrar' ? 'on' : ''} onClick={() => setMode('entrar')}>Já tenho cadastro</button>
-        <button className={mode === 'cadastrar' ? 'on' : ''} onClick={() => setMode('cadastrar')}>Primeira vez</button>
-      </div>
-      {err && <p className="err" role="alert">{err}</p>}
-
-      {mode === 'entrar' && !pick && (
-        <>
-          <input placeholder="Buscar seu nome" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="pick-grid">
-            {shown.map((p) => <Person key={p.id} name={p.name} photo_url={p.photo_url} onClick={() => setPick(p)} />)}
-          </div>
-          {!shown.length && <p className="muted">Ninguém com esse nome. Toque em “Primeira vez” para se cadastrar.</p>}
-        </>
-      )}
-      {mode === 'entrar' && pick && (
-        <LoginPick api={api} pick={pick} onDone={onDone} onBack={() => { setPick(null); setLast4(''); }} />
-      )}
-      {mode === 'cadastrar' && (
-        <div className="stack">
-          <input placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} />
-          <input inputMode="tel" placeholder="(00) 00000-0000" value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} />
-          <p className="muted">O celular é pedido para votar nas enquetes e editar seu perfil.</p>
-          <button className="btn primary" disabled={name.trim().length < 2 || phone.length < 15}
-                  onClick={() => run(() => api('/players', { body: { name, phone } }))}>Criar meu cadastro</button>
+    <main className="login">
+      <div className="panel login-box">
+        <h1>{APP_NAME}</h1>
+        <div className="tabs" role="tablist">
+          <button type="button" className={isLogin ? 'on' : ''} onClick={() => setMode('login')}>Entrar</button>
+          <button type="button" className={!isLogin ? 'on' : ''} onClick={() => setMode('register')}>Criar conta</button>
         </div>
-      )}
+        <form onSubmit={submit} className="form">
+          {!isLogin && (
+            <label className="field">Nome
+              <input value={form.name} onChange={set('name')} autoComplete="name" required maxLength={80} />
+            </label>
+          )}
+          <label className="field">Email
+            <input type="email" value={form.email} onChange={set('email')} autoComplete="email" required />
+          </label>
+          <label className="field">Senha
+            <input type="password" value={form.password} onChange={set('password')}
+              autoComplete={isLogin ? 'current-password' : 'new-password'} required
+              minLength={isLogin ? undefined : 8} maxLength={128} />
+          </label>
+          {msg && <p className="error">{msg}</p>}
+          <button className="btn" disabled={busy}>{isLogin ? 'Entrar' : 'Criar conta'}</button>
+        </form>
+      </div>
     </main>
   );
 }
 
-export default function App() {
-  const [user, setUser] = useState(undefined);
-  const [tab, setTab] = useState(() => { const ir = new URLSearchParams(window.location.search).get('ir'); return IR.includes(ir) ? ir : 'inicio'; });
-  const [viewId, setViewId] = useState(null);
-  const [eventId, setEventId] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
-  const [qr, setQr] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/checkin'); // aberto pelo QR da entrada
-  const [justLogged, setJustLogged] = useState(false); // acabou de entrar: pode sugerir criar senha
-  const [pwdOpen, setPwdOpen] = useState(false);
-  const [pendingRsvp, setPendingRsvp] = useState(null); // "Eu vou" tocado antes de entrar
-  const refresh = useCallback(() => api('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null)), []);
-  useEffect(() => { refresh(); }, [refresh]);
-  useEffect(() => { // toque numa notificação: abre a tela certa (limpa o ?ir= e escuta o aviso do service worker)
-    if (window.location.search.includes('ir=')) window.history.replaceState(null, '', '/');
-    const onMsg = (e) => { if (e.data?.type === 'ir' && IR.includes(e.data.ir)) { setViewId(null); setEventId(null); setTab(e.data.ir); } };
-    navigator.serviceWorker?.addEventListener('message', onMsg);
-    return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
-  }, []);
-  const leaveQr = () => { window.history.replaceState(null, '', '/'); setQr(false); };
+function Shell({ user }) {
+  const first = user.name.split(' ')[0];
+  const [tab, setTab] = useState('home');
+  const [month, setMonth] = useState(monthNow());
+  const [rev, setRev] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [dark, setDark] = useState(() => {
+    const t = getTheme();
+    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  const bump = () => setRev((r) => r + 1);
 
-  if (user === undefined) return <main className="screen"><p className="muted">Carregando…</p></main>;
-  if (qr && !user) {
-    return (
-      <>
-        <Auth note="Entre com o seu nome para fazer o check-in." onDone={() => { setJustLogged(true); refresh(); }} onBack={leaveQr} />
-        <Footer />
-      </>
-    );
+  function toggleTheme() {
+    const next = !dark;
+    setDark(next);
+    saveTheme(next ? 'dark' : 'light');
+    applyTheme(next ? 'dark' : 'light');
   }
-  if (!user && showLogin) {
-    const done = async () => {
-      if (pendingRsvp) {
-        try { await api(`/events/${pendingRsvp}/rsvp`, { body: { going: true } }); } catch { /* entra mesmo sem confirmar */ }
-        setPendingRsvp(null);
-      }
-      setShowLogin(false);
-      setJustLogged(true);
-      refresh();
-    };
-    return (
-      <>
-        <Auth note={pendingRsvp ? 'Entre para confirmar que você vai ao evento.' : ''} onDone={done} onBack={() => { setPendingRsvp(null); setShowLogin(false); }} />
-        <Footer />
-      </>
-    );
-  }
-  if (user?.needs_password) {
-    return (
-      <main className="screen">
-        <img className="logo" src="/logo.png" alt="Vôlei Alamedas Jardins" />
-        <h2>Crie sua senha</h2>
-        <p className="muted">Contas de admin e operador agora entram com senha própria. Até criar a sua, os recursos de gestão ficam bloqueados.</p>
-        <SetupForm api={api} playerId={user.id} onDone={refresh} />
-        <button className="btn ghost" onClick={() => api('/auth/logout', { body: {} }).then(() => setUser(null))}>Sair</button>
-        <Footer />
-      </main>
-    );
+  async function logout() {
+    await api('/api/auth/logout', { method: 'POST' });
+    location.href = '/';
   }
 
-  if (qr) return <><QrCheckin api={api} onDone={leaveQr} /><Footer /></>;
-
-  // Visitantes (sem login) veem eventos, ranking e perfis; o resto exige entrar.
-  const tabs = user
-    ? [['inicio', 'Início'], ['quadra', 'Quadra'], ['ranking', 'Ranking'], ['enquetes', 'Enquetes'], ['perfil', 'Perfil']]
-    : [['inicio', 'Eventos'], ['ranking', 'Ranking'], ['entrar', 'Entrar']];
-  const go = (k) => { setViewId(null); setEventId(null); if (k === 'entrar') { setPendingRsvp(null); setShowLogin(true); } else setTab(k); };
-  const openPlayer = (id) => { setEventId(null); setViewId(id); setTab('perfil'); };
-  const logout = () => { setUser(null); setTab('inicio'); };
-
-  const skipKey = user ? `senha-nao-${user.id}` : '';
-  const skipped = (() => { try { return !!localStorage.getItem(skipKey); } catch { return false; } })();
-  const suggest = !!user && justLogged && user.role === 'player' && !user.has_password && !skipped;
-
-  let page;
-  if (eventId) page = <EventDetail api={api} user={user} id={eventId} onBack={() => setEventId(null)} />;
-  else if (tab === 'ranking') page = <Ranking api={api} user={user} onOpen={openPlayer} />;
-  else if (tab === 'perfil' && (user || viewId)) page = <Profile api={api} user={user} playerId={viewId} onBack={() => { setViewId(null); setTab('ranking'); }} onSaved={refresh} />;
-  else if (user && tab === 'quadra') page = <Court api={api} user={user} />;
-  else if (user && tab === 'enquetes') page = <Enquetes api={api} user={user} />;
-  else page = user
-    ? <Home api={api} user={user} onLogout={logout} onOpenEvent={setEventId} />
-    : <PublicHome api={api} onOpenEvent={setEventId} onLogin={() => { setPendingRsvp(null); setShowLogin(true); }} onRsvp={(e) => { setPendingRsvp(e.id); setShowLogin(true); }} />;
+  const NAV = [
+    { id: 'home', label: first, Icon: User },
+    { id: 'cards', label: 'Cartões', Icon: CreditCard },
+  ];
+  const screen = {
+    home: <Overview user={user} month={month} rev={rev} bump={bump} go={setTab} />,
+    cards: <Cards month={month} key={rev} />,
+    settings: <Settings user={user} />,
+  }[tab];
 
   return (
-    <>
-      {page}
-      {suggest && !pwdOpen && (
-        <PasswordSuggest onCreate={() => setPwdOpen(true)} onLater={() => setJustLogged(false)}
-          onNever={() => { try { localStorage.setItem(skipKey, '1'); } catch { /* sem armazenamento */ } setJustLogged(false); }} />
-      )}
-      {pwdOpen && <PasswordModal api={api} hasPassword={false} onClose={() => { setPwdOpen(false); setJustLogged(false); }} onDone={() => { setPwdOpen(false); setJustLogged(false); refresh(); }} />}
-      <Footer />
-      <nav className="nav" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
-        {tabs.map(([k, label]) => (
-          <button key={k} className={tab === k && !eventId ? 'on' : ''} aria-label={label} title={label} aria-current={tab === k && !eventId ? 'page' : undefined} onClick={() => go(k)}><Icon name={k === 'inicio' && !user ? 'calendar' : k} /></button>
+    <div className="shell">
+      <aside className="side panel">
+        <div className="brandrow">
+          <span className="avatar">{first[0].toUpperCase()}</span>
+          <strong>{APP_NAME}</strong>
+        </div>
+        <small className="menu-l">Menu</small>
+        <nav>
+          {NAV.map(({ id, label, Icon }) => (
+            <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
+              <Icon size={17} /> {label}
+            </button>
+          ))}
+        </nav>
+        <div className="side-bottom">
+          <button onClick={toggleTheme}>{dark ? <Sun size={17} /> : <Moon size={17} />} {dark ? 'Modo diurno' : 'Modo noturno'}</button>
+          <button className={tab === 'settings' ? 'on' : ''} onClick={() => setTab('settings')}><SlidersHorizontal size={17} /> Ajustes</button>
+          <div className="userchip"><span className="avatar sm">{first[0].toUpperCase()}</span>{first}</div>
+          <button onClick={logout}><LogOut size={17} /> Sair</button>
+        </div>
+      </aside>
+
+      <div className="content">
+        {tab !== 'settings' && (
+          <header className="topbar panel">
+            <button className="sq" aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}><ChevronLeft size={16} /></button>
+            <h2>{monthLabel(month)}</h2>
+            <button className="sq" aria-label="Próximo mês" onClick={() => setMonth(shiftMonth(month, 1))}><ChevronRight size={16} /></button>
+            <span className="grow" />
+            <button className="btn sm" onClick={() => setAdding(true)}><Plus size={16} /> Adicionar gasto</button>
+          </header>
+        )}
+        {screen}
+      </div>
+
+      <nav className="bottom">
+        {NAV.map(({ id, label, Icon }) => (
+          <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}><Icon size={20} />{label}</button>
         ))}
+        <button className={tab === 'settings' ? 'on' : ''} onClick={() => setTab('settings')}><SlidersHorizontal size={20} />Ajustes</button>
       </nav>
-    </>
+      {adding && <TxForm month={month} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); bump(); }} />}
+    </div>
   );
+}
+
+export default function App() {
+  const [state, setState] = useState({ status: 'loading', user: null });
+
+  useEffect(() => {
+    api('/api/me')
+      .then((user) => setState({ status: 'in', user }))
+      .catch((e) => setState({ status: e.status === 401 ? 'out' : 'error', user: null }));
+  }, []);
+
+  if (state.status === 'loading') return null;
+  if (state.status === 'error') return <p className="error pad">Erro ao carregar. Recarregue a página.</p>;
+  if (state.status === 'out') return <Login />;
+  return <Shell user={state.user} />;
 }

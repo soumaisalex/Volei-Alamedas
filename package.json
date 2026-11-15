@@ -1,22 +1,25 @@
 {
-  "name": "volei-alamedas",
+  "name": "financas",
   "private": true,
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "wrangler pages dev --compatibility-date=2024-11-01 --port 8788 --proxy 5173 -- vite --port 5173",
     "build": "vite build",
-    "db:migrate": "node scripts/migrate.mjs"
+    "preview": "wrangler pages dev dist --compatibility-date=2024-11-01",
+    "migrate": "node --env-file=.dev.vars scripts/migrate.mjs"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@neondatabase/serverless": "^1.0.0",
-    "pg": "^8.13.0",
-    "qrcode": "^1.5.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@neondatabase/serverless": "^0.10.4",
+    "jose": "^5.9.6",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
-    "vite": "^7.0.0"
+    "@vitejs/plugin-react": "^4.3.4",
+    "pg": "^8.13.1",
+    "vite": "^5.4.11",
+    "wrangler": "^3.91.0"
   }
 }
