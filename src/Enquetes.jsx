@@ -62,7 +62,8 @@ export default function Enquetes({ api, user }) {
 
   const vote = async (poll, option) => {
     setErr('');
-    try { await api('/polls/vote', { body: { poll_id: poll.id, option_id: option.id } }); await load(); }
+    const undo = poll.my_option === option.id; // tocar de novo no próprio voto desfaz
+    try { await api(undo ? '/polls/unvote' : '/polls/vote', { body: undo ? { poll_id: poll.id } : { poll_id: poll.id, option_id: option.id } }); await load(); }
     catch (e) { setErr(e.message); }
   };
   const open = polls?.filter((p) => p.status === 'open') ?? [];
@@ -100,7 +101,7 @@ export default function Enquetes({ api, user }) {
                 </summary>
                 {p.description && <p className="muted">{p.description}</p>}
                 <p className="muted">Fecha em {left(p.closes_at)}{p.event_date ? `. Evento de ${day(p.event_date)}.` : '.'}</p>
-                {p.my_vote && <p>Seu voto: <strong>{p.my_vote}</strong></p>}
+                {p.my_vote && <p>Seu voto: <strong>{p.my_vote}</strong> <small className="muted">(toque nele de novo para desfazer)</small></p>}
                 {p.eligible ? (
                   <div className="stack">
                     {p.event_date && !p.options.some((o) => o.members?.length) ? (

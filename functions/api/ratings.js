@@ -19,7 +19,12 @@ export const onRequest = handle(async ({ request, sql, user }) => {
   }
   if (request.method !== 'POST') return fail(405, 'Método não permitido.');
   const b = await readBody(request);
-  if (!UUID.test(b.player_id || '') || !Number.isInteger(b.rating) || b.rating < 1 || b.rating > 5) return fail(400, 'Avaliação inválida.');
+  const clear = b.rating === null; // nota nula = remover a minha avaliação
+  if (!UUID.test(b.player_id || '') || (!clear && (!Number.isInteger(b.rating) || b.rating < 1 || b.rating > 5))) return fail(400, 'Avaliação inválida.');
+  if (clear) {
+    await sql`delete from player_ratings where player_id = ${b.player_id} and rater_id = ${user.id}`;
+    return json({ ok: true });
+  }
   const [p] = await sql`select id from players where id = ${b.player_id} and active`;
   if (!p) return fail(404, 'Jogador não encontrado.');
   await sql`insert into player_ratings (player_id, rater_id, rating) values (${b.player_id}, ${user.id}, ${b.rating})

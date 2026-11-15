@@ -11,10 +11,10 @@ export default function Avaliacao({ api, user }) {
   useEffect(() => { load(); }, [load]);
 
   const rate = async (p, rating) => {
-    if (rating === p.mine) return;
+    const next = rating === p.mine ? null : rating; // tocar de novo na própria nota a remove
     setErr('');
-    setList((l) => l.map((x) => (x.id === p.id ? { ...x, mine: rating } : x))); // otimista
-    try { await api('/ratings', { body: { player_id: p.id, rating } }); } catch (e) { setErr(e.message); }
+    setList((l) => l.map((x) => (x.id === p.id ? { ...x, mine: next } : x))); // otimista
+    try { await api('/ratings', { body: { player_id: p.id, rating: next } }); } catch (e) { setErr(e.message); }
     load(); // atualiza a média
   };
   const pending = list.filter((p) => p.mine == null).length;
@@ -23,7 +23,7 @@ export default function Avaliacao({ api, user }) {
   return (
     <details className="card">
       <summary><span className="grow">Avaliação dos jogadores</span>{!!pending && <small className="muted">{pending} por avaliar</small>}</summary>
-      <p className="muted">Dê a sua nota, de 1 a 5 estrelas, a cada jogador. Ela é salva ao tocar; estrelas mais claras indicam que você ainda não avaliou. O sorteio dos times, dentro do evento, usa a média das notas de todos os operadores. Só operadores e admin veem as notas; a quadra livre usa só os dados do sistema.</p>
+      <p className="muted">Dê a sua nota, de 1 a 5 estrelas, a cada jogador. Ela é salva ao tocar; estrelas mais claras indicam que você ainda não avaliou. Toque de novo na estrela escolhida para remover a sua nota. O sorteio dos times, dentro do evento, usa a média das notas de todos os operadores. Só operadores e admin veem as notas; a quadra livre usa só os dados do sistema.</p>
       {err && <p className="err" role="alert">{err}</p>}
       <div>
         {list.map((p) => (

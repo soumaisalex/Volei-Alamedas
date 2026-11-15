@@ -50,6 +50,16 @@ export const onRequest = handle(async (ctx) => {
     return json({ ok: true });
   }
 
+  // Desfazer o próprio voto (só enquanto a votação está aberta).
+  if (action === 'unvote') {
+    await closeDue(sql, ctx);
+    if (!UUID.test(b.poll_id || '')) return fail(400, 'Voto inválido.');
+    const [poll] = await sql`select status from polls where id = ${b.poll_id}`;
+    if (!poll || poll.status !== 'open') return fail(409, 'Esta votação já foi encerrada.');
+    await sql`delete from votes where poll_id = ${b.poll_id} and voter_id = ${user.id}`;
+    return json({ ok: true });
+  }
+
   // ───── daqui em diante: só o admin ─────
   if (!can(user, 'admin')) return fail(403, 'Só o admin gerencia enquetes.');
 
