@@ -1,5 +1,6 @@
 import { handle, json, fail, can, readBody, UUID } from '../../../../_lib/util.js';
-import { loadCourt, dissolveTeams, drawScope } from '../../../../_lib/court.js';
+import { loadCourt, dissolveTeams, drawScope, nextTeamNames } from '../../../../_lib/court.js';
+import { THEMES } from '../../../../../shared/teamnames.js';
 import { planDraw, strength } from '../../../../_lib/draw.js';
 
 export const onRequest = handle(async ({ request, params, sql, user }) => {
@@ -19,11 +20,30 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     sql`select id, name, status from teams where event_id = ${id} and status <> 'disbanded' and queue_pos is not null order by queue_pos`;
 
   if (action === 'team-create') {
-    const [{ n }] = await sql`select count(*)::int as n from teams where event_id = ${id}`;
-    const name = String(b.name || '').trim() || `Time ${String.fromCharCode(65 + (n % 26))}`;
+    const name = String(b.name || '').trim() || (await nextTeamNames(sql, id, 1))[0];
     const [t] = await sql`insert into teams (event_id, name, queue_pos)
               select ${id}, ${name}, coalesce(max(queue_pos), 0) + 1 from teams where event_id = ${id} returning id`;
     return json({ ok: true, id: t.id });
+  }
+
+  // Lista de nomes dos times: escolhida uma única vez por evento (depois de escolhida, não muda).
+  if (action === 'theme') {
+    if (!THEMES.some((t) => t.key === b.theme)) return fail(400, 'Escolha uma lista de nomes.');
+    await sql`update events set team_theme = ${b.theme} where id = ${id} and team_theme is null`;
+    return json({ ok: true });
+  }
+
+  // Remove todos os times de uma vez: os jogadores voltam para "Sem time" e o histórico de partidas é preservado.
+  if (action === 'teams-clear') {
+    const [live] = await sql`select 1 from matches where event_id = ${id} and status = 'in_progress'`;
+    if (live) return fail(409, 'Há uma partida em andamento. Cancele ou encerre antes de remover os times.');
+    const [c] = await sql`select count(*)::int as n from teams where event_id = ${id} and status <> 'disbanded'`;
+    if (!c.n) return fail(409, 'Não há times para remover.');
+    await sql.transaction([
+      sql`update team_members set left_at = now() where event_id = ${id} and left_at is null`,
+      sql`update teams set status = 'disbanded', disbanded_at = now(), queue_pos = null where event_id = ${id} and status <> 'disbanded'`,
+    ]);
+    return json({ ok: true, removed: c.n });
   }
 
   if (action === 'team-rename') {
@@ -100,9 +120,9 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     if (!size) return json({ ask: true, create }); // o tamanho do time precisa ser informado
     const stale = () => fail(409, 'A quadra mudou desde a prévia. Sorteie de novo.');
     const poolIds = new Set(sc.pool.map((p) => p.id));
-    const [{ n: made, q: lastPos }] = await sql`select count(*)::int as n, coalesce(max(queue_pos), 0)::int as q from teams where event_id = ${id}`;
-    const nameOf = (i) => `Time ${String.fromCharCode(65 + ((made + i) % 26))}`;
-    const slots = create ? Array.from({ length: Math.ceil(sc.pool.length / size) }, (_, i) => ({ id: `novo-${i}`, name: nameOf(i) })) : sc.teams;
+    const [{ q: lastPos }] = await sql`select coalesce(max(queue_pos), 0)::int as q from teams where event_id = ${id}`;
+    const names = create ? await nextTeamNames(sql, id, Math.ceil(sc.pool.length / size)) : [];
+    const slots = create ? names.map((name, i) => ({ id: `novo-${i}`, name })) : sc.teams;
 
     if (!b.apply) {
       const plan = planDraw(sc.pool, slots.map((t) => t.id), size);
@@ -133,7 +153,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
       await sql.transaction([
         sql`insert into teams (id, event_id, name, queue_pos, status)
             select x.i, ${id}::uuid, x.n, ${lastPos}::int + x.q, 'active'::team_status
-            from unnest(${tids}::uuid[], ${plan.map((_, i) => nameOf(i))}::text[], ${plan.map((_, i) => i + 1)}::int[]) as x(i, n, q)`,
+            from unnest(${tids}::uuid[], ${names}::text[], ${plan.map((_, i) => i + 1)}::int[]) as x(i, n, q)`,
         sql`insert into team_members (team_id, event_id, player_id)
             select x.t, ${id}::uuid, x.p from unnest(${members.map((m) => m[0])}::uuid[], ${members.map((m) => m[1])}::uuid[]) as x(t, p)`,
       ]);

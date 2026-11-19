@@ -3,6 +3,7 @@ import { nameSize } from './Person.jsx';
 import FreeCourt from './FreeCourt.jsx';
 import Confirm from './Confirm.jsx';
 import Sorteio from './Sorteio.jsx';
+import TeamTheme from './TeamTheme.jsx';
 import { ScoreEditor } from './MatchActions.jsx';
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 
@@ -104,6 +105,8 @@ export default function Court({ api, user }) {
   const [fixing, setFixing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [drawing, setDrawing] = useState(false);
+  const [themeAsk, setThemeAsk] = useState(null); // { then } enquanto se escolhe a lista de nomes
+  const [clearing, setClearing] = useState(false);
   const lastDrag = useRef(0); // evita tratar o fim de um arrasto como toque
   const busy = useRef(false); // pausa a atualização automática enquanto arrasta ou digita o placar final
   const sensors = useSensors(
@@ -146,10 +149,11 @@ export default function Court({ api, user }) {
   };
   const closeMove = () => { busy.current = false; setMoving(null); };
   const openMove = (p) => { if (Date.now() - lastDrag.current < 400) return; busy.current = true; setMoving(p); };
-  const moveTo = async (dest) => {
-    const p = moving;
+  const moveTo = async (dest, who = moving, themed = false) => {
+    const p = who;
     closeMove(); setErr('');
     if (dest !== 'new') { await run('assign', { player_id: p.id, team_id: dest }); return; }
+    if (!themed && !data.event.team_theme) { busy.current = true; setThemeAsk({ then: () => moveTo('new', p, true) }); return; }
     try {
       const r = await api(`/events/${eid}/court/team-create`, { body: {} });
       await api(`/events/${eid}/court/assign`, { body: { player_id: p.id, team_id: r.id } });
@@ -161,6 +165,8 @@ export default function Court({ api, user }) {
   if (!data) return <main className="screen"><p className="muted">Carregando…</p>{err && <p className="err">{err}</p>}</main>;
 
   const { event, teams, free, match, recent } = data;
+  const ensureTheme = (then) => { if (event.team_theme) then(); else { busy.current = true; setThemeAsk({ then }); } }; // a escolha da lista é feita uma única vez por evento
+  const openDraw = () => { busy.current = true; setDrawing(true); };
   const byId = Object.fromEntries(teams.map((t) => [t.id, t]));
   const queue = teams.filter((t) => t.queue_pos != null);
   const sides = match ? [byId[match.team_a_id], byId[match.team_b_id]] : [];
@@ -246,8 +252,9 @@ export default function Court({ api, user }) {
               </Team>
             ))}
             {!queue.length && <p className="muted">Nenhum time na fila. Toque em “Novo time”.</p>}
-            {ops && <button className="btn" onClick={() => run('team-create')}>Novo time</button>}
-            {ops && (queue.length > 0 || free.length > 0) && <button className="btn" onClick={() => { busy.current = true; setDrawing(true); }}>{queue.length ? 'Sortear times' : 'Sortear e criar times'}</button>}
+            {ops && <button className="btn" onClick={() => ensureTheme(() => run('team-create'))}>Novo time</button>}
+            {ops && (queue.length > 0 || free.length > 0) && <button className="btn" onClick={() => (queue.length ? openDraw() : ensureTheme(openDraw))}>{queue.length ? 'Sortear times' : 'Sortear e criar times'}</button>}
+            {ops && teams.length > 0 && <button className="btn danger" disabled={!!match} title={match ? 'Há partida em andamento' : undefined} onClick={() => setClearing(true)}>Remover todos os times</button>}
           </div>
         </section>
 
@@ -297,6 +304,15 @@ export default function Court({ api, user }) {
       {deleting && (
         <Confirm title="Excluir esta partida?" text={`${deleting.a} x ${deleting.b} (${deleting.score_a} a ${deleting.score_b}) deixa de contar no ranking e nos perfis. Não dá para desfazer. A fila não é alterada.`} label="Excluir partida" danger
           onCancel={() => setDeleting(null)} onOk={() => { const m = deleting; setDeleting(null); call(`/matches/${m.id}/delete`, {}); }} />
+      )}
+      {themeAsk && (
+        <TeamTheme api={api} eid={eid} onClose={() => { busy.current = false; setThemeAsk(null); }}
+          onPicked={() => { const next = themeAsk.then; busy.current = false; setThemeAsk(null); load().catch(() => {}); next(); }} />
+      )}
+      {clearing && (
+        <Confirm title="Remover todos os times?" label="Remover todos" danger
+          text="Todos os times são desfeitos e os jogadores voltam para “Sem time”, prontos para um novo sorteio. O histórico das partidas é preservado."
+          onCancel={() => setClearing(false)} onOk={() => { setClearing(false); run('teams-clear'); }} />
       )}
       {drawing && (
         <Sorteio api={api} eid={eid} onClose={() => { busy.current = false; setDrawing(false); }}

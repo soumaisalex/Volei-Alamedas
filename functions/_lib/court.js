@@ -1,9 +1,10 @@
 // Estado e regras da quadra (times, fila, partidas).
 import { commonSize } from './draw.js';
+import { themeNames } from '../../shared/teamnames.js';
 
 export async function loadCourt(sql, eventId) {
   const [[event], teams, free, [match], recent] = await Promise.all([
-    sql`select id, status, team_size, points_target from events where id = ${eventId}`,
+    sql`select id, status, team_size, points_target, team_theme from events where id = ${eventId}`,
     sql`
       select t.id, t.name, t.status, t.queue_pos, t.win_streak,
         coalesce(json_agg(json_build_object('id', p.id, 'name', p.name, 'photo_url', p.photo_url,
@@ -32,6 +33,29 @@ export async function loadCourt(sql, eventId) {
   return { event, teams, free, match: match ?? null, recent };
 }
 
+// Próximos nomes livres para times novos, na ordem da lista escolhida para o evento (esgotou: "Nome 2", "Nome 3"…).
+// Sem lista escolhida (eventos antigos): Time A, Time B…
+export async function nextTeamNames(sql, eventId, count) {
+  const [[ev], used, [total]] = await Promise.all([
+    sql`select team_theme from events where id = ${eventId}`,
+    sql`select name from teams where event_id = ${eventId} and status <> 'disbanded'`,
+    sql`select count(*)::int as n from teams where event_id = ${eventId}`,
+  ]);
+  const base = themeNames(ev?.team_theme);
+  if (!base) return Array.from({ length: count }, (_, i) => `Time ${String.fromCharCode(65 + ((total.n + i) % 26))}`);
+  const taken = new Set(used.map((r) => r.name));
+  const out = [];
+  for (let round = 1; out.length < count && round <= 50; round++) {
+    for (const b of base) {
+      const name = round === 1 ? b : `${b} ${round}`;
+      if (taken.has(name)) continue;
+      out.push(name); taken.add(name);
+      if (out.length === count) break;
+    }
+  }
+  return out;
+}
+
 // Desfaz times fora de quadra com 2+ vagas abertas ao mesmo tempo (2+ jogadores que saíram).
 // O time novo herda a posição do desfeito na fila (vaga reservada).
 export async function dissolveTeams(sql, eventId) {
@@ -43,8 +67,7 @@ export async function dissolveTeams(sql, eventId) {
              join checkins c on c.event_id = tm.event_id and c.player_id = tm.player_id
            where tm.team_id = t.id and tm.left_at is null and c.left_at is not null) >= 2`;
   for (const t of teams) {
-    const [{ n }] = await sql`select count(*)::int as n from teams where event_id = ${eventId}`;
-    const name = `Time ${String.fromCharCode(65 + (n % 26))}`;
+    const [name] = await nextTeamNames(sql, eventId, 1);
     await sql.transaction([
       sql`update team_members set left_at = now() where team_id = ${t.id} and left_at is null`,
       sql`update teams set status = 'disbanded', disbanded_at = now(), queue_pos = null where id = ${t.id}`,

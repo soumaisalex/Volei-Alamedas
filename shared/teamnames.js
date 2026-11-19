@@ -1,0 +1,16 @@
+// Listas de nomes para os times (uma lista por evento, escolhida na primeira vez que se cria um time).
+// Usado pelo servidor (functions/_lib/court.js) e pela tela (src/TeamTheme.jsx).
+export const THEMES = [
+  { key: 'cores', label: 'Cores', names: ['Time Laranja', 'Time Azul', 'Time Verde', 'Time Roxo', 'Time Amarelo', 'Time Vermelho', 'Time Preto', 'Time Branco', 'Time Ciano', 'Time Cinza', 'Time Dourado', 'Time Rosa'] },
+  { key: 'elementos', label: 'Elementos & Natureza', names: ['Time Sol', 'Time Mar', 'Time Trovão', 'Time Vento', 'Time Fogo', 'Time Gelo', 'Time Raio', 'Time Rocha', 'Time Magma', 'Time Onda', 'Time Eclipse', 'Time Aurora'] },
+  { key: 'jargoes', label: 'Jargões de Vôlei', names: ['Os Cravadores', 'Os Peixinhos', 'Só Largadinha', 'Mão de Alface', 'Bloqueio Duplo', 'Rede é Nossa', 'Saque Viagem', 'Bola Fora', 'Manchete Torta', 'Toque Conduzido', 'Levantador de Copo', 'Líbero Perdido'] },
+  { key: 'resenha', label: 'Clima de Resenha', names: ['Sem Joelho', 'Time Dorflex', 'Só Vim Pelo Churrasco', 'Os Fominhas', 'Deixa Que Eu Deixo', 'Toca Pro Pai', 'Time Cãibra', 'Aquecimento Zero', 'Primeiro Set é Nosso', 'Time Resenha', 'Última Bola', 'Os Cansados'] },
+  { key: 'fauna', label: 'Predadores & Fauna', names: ['Falcões', 'Tubarões', 'Panteras', 'Lobos', 'Águias', 'Tigres', 'Escorpiões', 'Víboras', 'Leões', 'Gorilas', 'Rinocerontes', 'Pumas', 'Cobras', 'Ursos', 'Crocodilos', 'Raposas'] },
+  { key: 'mitologia', label: 'Mitologia & Guerreiros', names: ['Titãs', 'Olimpianos', 'Espartanos', 'Vikings', 'Fênix', 'Dragões', 'Gladiadores', 'Centuriões', 'Samurais', 'Valquírias', 'Minotauros', 'Kraken'] },
+  { key: 'fonetico', label: 'Alfabeto Fonético', names: ['Esquadrão Alpha', 'Esquadrão Bravo', 'Esquadrão Charlie', 'Esquadrão Delta', 'Esquadrão Echo', 'Esquadrão Foxtrot', 'Esquadrão Golf', 'Esquadrão Hotel', 'Esquadrão Kilo', 'Esquadrão Lima', 'Esquadrão Omega', 'Esquadrão Viper'] },
+  { key: 'bairros', label: 'Bairros de Aracaju', names: ['Atalaia', 'Aruana', 'Farolândia', 'Coroa do Meio', 'Robalo', 'Mosqueiro', 'Aeroporto', 'Santa Maria', 'São Conrado', 'Orlando Dantas', '13 de Julho', 'Jardins', 'Grageru', 'São José', 'Salgado Filho', 'Inácio Barbosa', 'Luzia', 'Suíssa', 'Cirurgia', 'Pereira Lobo', 'Siqueira Campos', 'Bugio', 'Industrial', 'Santos Dumont', 'Jabotiana', 'Ponto Novo', 'Capucho', 'América', 'Novo Paraíso', 'Olaria'] },
+  { key: 'bandas', label: 'Bandas Sergipanas', names: ['Calcinha Preta', 'Fogo na Saia', 'Cintura Fina', 'Mulheres Perdidas', 'Rojão Diferente', 'Alma Gêmea', 'Forró Brasil', 'Unha Pintada', 'Amor de Cinema', 'Banda Reação', 'Karisma'] },
+  { key: 'forro', label: 'Ícones do Forró', names: ['Calcinha Preta', 'Mastruz com Leite', 'Magníficos', 'Limão com Mel', 'Cavaleiros do Forró', 'Saia Rodada', 'Aviões do Forró', 'Desejo de Menina', 'Garota Safada', 'Brucelose', 'Brasas do Forró', 'Catuaba com Amendoim', 'Noda de Caju'] },
+  { key: 'axe', label: 'Axé, Pagodão & Swingueira', names: ['Chiclete com Banana', 'Asa de Águia', 'É o Tchan', 'Harmonia do Samba', 'Psirico', 'Parangolé', 'Timbrada', 'Olodum', 'Banda Eva', 'Babado Novo', 'Ara Ketu', 'Terra Samba'] },
+];
+export const themeNames = (key) => THEMES.find((t) => t.key === key)?.names ?? null;
