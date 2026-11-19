@@ -12,6 +12,7 @@ import { DonationCard } from './Donation.jsx';
 import { OPEN, STATUS, fmtDate, today, Face, pickCurrent } from './shared.jsx';
 import { disablePush } from './push.js';
 import DeleteEvent from './DeleteEvent.jsx';
+import TeamTheme from './TeamTheme.jsx';
 
 // Ações sobre uma pessoa que está na quadra.
 function PresentSheet({ p, ops, onLeave, onRemove, onClose }) {
@@ -52,6 +53,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   const [streamEdit, setStreamEdit] = useState(false);
   const [blocked, setBlocked] = useState([]);
   const [pending, setPending] = useState([]);
+  const [pickTheme, setPickTheme] = useState(null); // id do evento que acabou de iniciar
   const askOk = (title, text, label, run, danger) => setAsk({ title, text, label, run, danger });
   const ops = user.role === 'admin' || user.role === 'operator';
   const admin = user.role === 'admin';
@@ -79,7 +81,10 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
   };
   const act = async (action, body) => {
     setErr(''); setOk('');
-    try { await api(`/events/${cur.id}/${action}`, { body: body || {} }); setPanel(null); await load(); }
+    try {
+      await api(`/events/${cur.id}/${action}`, { body: body || {} }); setPanel(null); await load();
+      if (action === 'start') setPickTheme(cur.id); // ao iniciar, escolhe a lista de nomes dos times
+    }
     catch (e) { setErr(e.message); }
   };
   const createEvent = async () => {
@@ -231,6 +236,7 @@ export default function Home({ api, user, onLogout, onOpenEvent }) {
           onLeave={() => { const p = sheet; setSheet(null); askOk(`Marcar a saída de ${p.name}?`, 'A pessoa será marcada como fora da quadra. Se estiver em um time, ele pode ser desfeito quando 2 ou mais pessoas saírem.', 'Marcar saída', () => act('leave', { player_id: p.id }), true); }}
           onRemove={() => { const p = sheet; setSheet(null); askOk(`Remover ${p.name} do evento?`, 'O check-in será apagado e a pessoa não poderá fazer check-in de novo neste evento.', 'Remover e bloquear', () => act('block', { player_id: p.id }), true); }} />
       )}
+      {pickTheme && <TeamTheme api={api} eid={pickTheme} onPicked={() => setPickTheme(null)} onClose={() => setPickTheme(null)} />}
       {ask && <Confirm {...ask} onCancel={() => setAsk(null)} onOk={async () => { const run = ask.run; setAsk(null); await run(); }} />}
     </main>
   );

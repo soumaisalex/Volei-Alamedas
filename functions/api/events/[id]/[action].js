@@ -224,7 +224,7 @@ export const onRequest = handle(async (ctx) => {
       sql`delete from teams where event_id = ${id}`,
       sql`delete from checkins where event_id = ${id}`,
       sql`delete from checkin_blocks where event_id = ${id}`,
-      sql`update events set status = 'scheduled', started_at = null where id = ${id} and status = 'in_progress'`,
+      sql`update events set status = 'scheduled', started_at = null, team_theme = null where id = ${id} and status = 'in_progress'`,
     ]);
     fire(ctx, () => toTopic(ctx, 'event', {
       title: 'Engano no início do evento', body: `O evento de ${fmtDay(ev.day)} ainda não começou. Ignore o aviso de check-in.`, ir: 'inicio', tag: `evento-${id}`,

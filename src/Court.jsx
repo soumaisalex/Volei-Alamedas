@@ -136,10 +136,12 @@ export default function Court({ api, user }) {
 
   const run = async (action, body) => {
     setErr('');
+    let ok = true;
     try { await api(`/events/${eid}/court/${action}`, { body: body || {} }); setFin(null); }
-    catch (e) { setErr(e.message); }
+    catch (e) { setErr(e.message); ok = false; }
     busy.current = false;
     await load().catch(() => {});
+    return ok;
   };
   const rename = (team_id, name) => run('team-rename', { team_id, name });
   const call = async (path, body) => {
@@ -312,7 +314,7 @@ export default function Court({ api, user }) {
       {clearing && (
         <Confirm title="Remover todos os times?" label="Remover todos" danger
           text="Todos os times são desfeitos e os jogadores voltam para “Sem time”, prontos para um novo sorteio. O histórico das partidas é preservado."
-          onCancel={() => setClearing(false)} onOk={() => { setClearing(false); run('teams-clear'); }} />
+          onCancel={() => setClearing(false)} onOk={async () => { setClearing(false); if (await run('teams-clear')) { busy.current = true; setThemeAsk({ then: () => {} }); } }} />
       )}
       {drawing && (
         <Sorteio api={api} eid={eid} onClose={() => { busy.current = false; setDrawing(false); }}

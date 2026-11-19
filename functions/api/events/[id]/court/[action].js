@@ -26,14 +26,15 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     return json({ ok: true, id: t.id });
   }
 
-  // Lista de nomes dos times: escolhida uma única vez por evento (depois de escolhida, não muda).
+  // Lista de nomes dos times: escolhida ao iniciar o evento e só muda depois que todos os times são removidos.
   if (action === 'theme') {
     if (!THEMES.some((t) => t.key === b.theme)) return fail(400, 'Escolha uma lista de nomes.');
     await sql`update events set team_theme = ${b.theme} where id = ${id} and team_theme is null`;
     return json({ ok: true });
   }
 
-  // Remove todos os times de uma vez: os jogadores voltam para "Sem time" e o histórico de partidas é preservado.
+  // Remove todos os times de uma vez: os jogadores voltam para "Sem time", o histórico de partidas é preservado
+  // e a lista de nomes volta a ser escolhível.
   if (action === 'teams-clear') {
     const [live] = await sql`select 1 from matches where event_id = ${id} and status = 'in_progress'`;
     if (live) return fail(409, 'Há uma partida em andamento. Cancele ou encerre antes de remover os times.');
@@ -42,6 +43,7 @@ export const onRequest = handle(async ({ request, params, sql, user }) => {
     await sql.transaction([
       sql`update team_members set left_at = now() where event_id = ${id} and left_at is null`,
       sql`update teams set status = 'disbanded', disbanded_at = now(), queue_pos = null where event_id = ${id} and status <> 'disbanded'`,
+      sql`update events set team_theme = null where id = ${id}`, // a lista de nomes pode ser escolhida de novo
     ]);
     return json({ ok: true, removed: c.n });
   }

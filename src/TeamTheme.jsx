@@ -21,7 +21,7 @@ export default function TeamTheme({ api, eid, onPicked, onClose }) {
     <div className="overlay" role="presentation" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label="Nomes dos times" onClick={(e) => e.stopPropagation()}>
         <h3>Nomes dos times</h3>
-        <p className="muted">Escolha uma lista para este evento. É uma escolha única: os times novos usam os nomes da lista, em ordem.</p>
+        <p className="muted">Escolha uma lista de nomes para os times deste evento. Os nomes saem numa ordem sorteada, e só dá para escolher outra lista depois de remover todos os times.</p>
         {err && <p className="err" role="alert">{err}</p>}
         <div className="stack">
           {THEMES.map((t) => (
