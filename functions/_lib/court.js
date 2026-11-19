@@ -33,7 +33,26 @@ export async function loadCourt(sql, eventId) {
   return { event, teams, free, match: match ?? null, recent };
 }
 
-// Próximos nomes livres para times novos, na ordem da lista escolhida para o evento (esgotou: "Nome 2", "Nome 3"…).
+// Gerador pseudoaleatório com semente (xmur3 + mulberry32): a mesma semente sempre dá a mesma sequência.
+function seededRandom(text) {
+  let h = 1779033703 ^ text.length;
+  for (let i = 0; i < text.length; i++) { h = Math.imul(h ^ text.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  let seed = (Math.imul(h ^ (h >>> 16), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0;
+  return () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Ordem sorteada da lista de nomes. Fixa por evento e lista (a prévia do sorteio e a criação dos times concordam).
+function shuffledNames(base, seedText) {
+  const rand = seededRandom(seedText), a = [...base];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// Próximos nomes livres para times novos, numa ordem sorteada da lista escolhida para o evento (esgotou: "Nome 2", "Nome 3"…).
 // Sem lista escolhida (eventos antigos): Time A, Time B…
 export async function nextTeamNames(sql, eventId, count) {
   const [[ev], used, [total]] = await Promise.all([
@@ -41,8 +60,9 @@ export async function nextTeamNames(sql, eventId, count) {
     sql`select name from teams where event_id = ${eventId} and status <> 'disbanded'`,
     sql`select count(*)::int as n from teams where event_id = ${eventId}`,
   ]);
-  const base = themeNames(ev?.team_theme);
-  if (!base) return Array.from({ length: count }, (_, i) => `Time ${String.fromCharCode(65 + ((total.n + i) % 26))}`);
+  const list = themeNames(ev?.team_theme);
+  if (!list) return Array.from({ length: count }, (_, i) => `Time ${String.fromCharCode(65 + ((total.n + i) % 26))}`);
+  const base = shuffledNames(list, `${eventId}:${ev.team_theme}`);
   const taken = new Set(used.map((r) => r.name));
   const out = [];
   for (let round = 1; out.length < count && round <= 50; round++) {
